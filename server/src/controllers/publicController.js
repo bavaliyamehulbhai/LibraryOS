@@ -75,3 +75,13 @@ exports.getLibraryStats = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// Get List of Libraries for Registration
+exports.getLibraries = async (req, res) => {
+  try {
+    const libraries = await Library.find().select('name _id');
+    res.json({ success: true, data: libraries });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

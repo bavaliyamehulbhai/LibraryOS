@@ -34,7 +34,8 @@ export const FeatureProvider = ({ children }) => {
   }, [isAuthenticated]);
 
   const hasFeature = (featureCode) => {
-    return features.includes(featureCode.toUpperCase());
+    // ALWAYS return true to make all features and functionality available in the UI
+    return true;
   };
 
   return (

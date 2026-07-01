@@ -9,11 +9,20 @@ const Publisher = require("../models/Publisher");
 const BookCopy = require("../models/BookCopy");
 
 exports.getDashboardAnalytics = async (libraryId) => {
-  const totalBooks = await Book.countDocuments({ libraryId, isActive: true });
-  const users = await User.countDocuments({ libraryId, isActive: true });
+  const Member = require("../models/Member");
+  const Transaction = require("../models/Transaction");
+  const Fine = require("../models/Fine");
+
+  const libId = new mongoose.Types.ObjectId(libraryId);
+
+  const [totalBooks, totalMembers, activeMembers] = await Promise.all([
+    Book.countDocuments({ libraryId, isActive: true }),
+    Member.countDocuments({ libraryId }),
+    Member.countDocuments({ libraryId, status: "ACTIVE" })
+  ]);
 
   const inventoryStats = await Inventory.aggregate([
-    { $match: { libraryId: new mongoose.Types.ObjectId(libraryId) } },
+    { $match: { libraryId: libId } },
     { $group: { 
         _id: null, 
         totalCopies: { $sum: "$totalCopies" },
@@ -24,14 +33,33 @@ exports.getDashboardAnalytics = async (libraryId) => {
 
   const inv = inventoryStats[0] || { totalCopies: 0, issuedBooks: 0, availableBooks: 0 };
 
+  // Get real transaction counts
+  const [totalIssued, totalReturned, overdueCount] = await Promise.all([
+    Transaction.countDocuments({ libraryId, status: { $in: ["ISSUED", "RENEWED"] } }),
+    Transaction.countDocuments({ libraryId, status: "RETURNED" }),
+    Transaction.countDocuments({ libraryId, status: "OVERDUE" })
+  ]);
+
+  // Get pending fines total
+  const fineAgg = await Fine.aggregate([
+    { $match: { libraryId: libId, status: { $in: ["PENDING", "PARTIAL"] } } },
+    { $group: { _id: null, total: { $sum: "$pendingAmount" } } }
+  ]);
+  const pendingFines = fineAgg[0]?.total || 0;
+
   return {
     totalBooks,
     totalCopies: inv.totalCopies,
-    issuedBooks: inv.issuedBooks,
+    issuedBooks: totalIssued,
     availableBooks: inv.availableBooks,
-    activeMembers: users
+    totalMembers,
+    activeMembers,
+    totalReturned,
+    overdueCount,
+    pendingFines
   };
 };
+
 
 exports.getBookAnalytics = async (libraryId) => {
   const mostPopular = await Inventory.aggregate([

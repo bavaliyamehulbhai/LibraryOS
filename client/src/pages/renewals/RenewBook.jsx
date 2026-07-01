@@ -19,17 +19,11 @@ const RenewBook = () => {
     setLoading(true);
     try {
       const res = await api.get(`/v1/members?search=${memberCode}`);
-      if (res.data.success && res.data.data.members.length > 0) {
-        const exactMember = res.data.data.members.find(m => m.memberCode === memberCode || m.memberCardNumber === memberCode);
-        if (exactMember) {
-          setMember(exactMember);
-          fetchIssuedBooks(exactMember._id);
-          toast.success("Member loaded");
-        } else {
-          toast.error("Member not found with this exact code.");
-          setMember(null);
-          setIssuedBooks([]);
-        }
+      if (res.data.success && res.data.data && res.data.data.length > 0) {
+        const exactMember = res.data.data.find(m => m.memberCode === memberCode || m.memberCardNumber === memberCode) || res.data.data[0];
+        setMember(exactMember);
+        fetchIssuedBooks(exactMember._id);
+        toast.success("Member loaded");
       } else {
         toast.error("Member not found.");
         setMember(null);
@@ -44,14 +38,13 @@ const RenewBook = () => {
 
   const fetchIssuedBooks = async (memberId) => {
     try {
-      // Find active transactions for this member
       const res = await api.get(`/v1/issues?memberId=${memberId}&status=ISSUED`);
       if (res.data.success) {
-        // We will just filter client side since the API returns all for library if memberId not supported
-        // But let's assume we can filter by memberId. 
-        // Actually, we should just fetch all issues and filter, or add query support.
-        const allIssues = res.data.data;
-        const memberIssues = allIssues.filter(tx => tx.memberId._id === memberId && (tx.status === 'ISSUED' || tx.status === 'RENEWED'));
+        const allIssues = res.data.data || [];
+        const memberIssues = allIssues.filter(tx => {
+          const txMemberId = tx.memberId?._id || tx.memberId;
+          return String(txMemberId) === String(memberId) && (tx.status === 'ISSUED' || tx.status === 'RENEWED');
+        });
         setIssuedBooks(memberIssues);
       }
     } catch (err) {

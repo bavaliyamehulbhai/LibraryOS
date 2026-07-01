@@ -27,7 +27,7 @@ const Navbar = () => {
   };
 
   return (
-    <div className="h-16 bg-white border-b shadow-sm flex items-center justify-between px-6 sticky top-0 z-10 dark:bg-gray-800 dark:border-gray-700">
+    <div className="h-16 glass-nav shadow-sm flex items-center justify-between px-6 sticky top-0 z-10">
       
       <div className="flex-1 flex items-center">
         <GlobalSearch />

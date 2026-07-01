@@ -11,6 +11,9 @@ router.get("/", checkPermission("INVENTORY_VIEW"), inventoryController.getInvent
 router.get("/stats", checkPermission("INVENTORY_VIEW"), inventoryController.getStats);
 router.get("/history", checkPermission("INVENTORY_VIEW"), inventoryController.getMovementHistory);
 
+// Search by barcode (must be before /:bookId to avoid conflict)
+router.get("/copies/barcode/:barcode", inventoryController.getCopyByBarcode);
+
 // Specific book view
 router.get("/:bookId", checkPermission("INVENTORY_VIEW"), inventoryController.getInventoryByBook);
 

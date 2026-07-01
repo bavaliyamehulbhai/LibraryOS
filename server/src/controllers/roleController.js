@@ -5,17 +5,34 @@ const auditService = require("../services/auditService");
 
 exports.getRoles = async (req, res) => {
   try {
-    const roles = await Role.find({ libraryId: req.user.libraryId }).populate("permissions");
+    const libraryId = req.user.libraryId || null;
+    const query = libraryId ? { libraryId } : { libraryId: null };
+
+    let roles = await Role.find(query).populate("permissions");
     
+    if (roles.length === 0) {
+      const defaultRoles = [
+        { name: "Super Admin", description: "Full system access", libraryId, isSystem: true },
+        { name: "Library Admin", description: "Full access to library", libraryId, isSystem: true },
+        { name: "Librarian", description: "Full access to library management", libraryId, isSystem: false },
+        { name: "Assistant", description: "Can manage books and users", libraryId, isSystem: false },
+        { name: "Member", description: "Can borrow and read books", libraryId, isSystem: false }
+      ];
+      roles = await Role.insertMany(defaultRoles);
+    }
+
     // Get user counts for each role
     const rolesWithCounts = await Promise.all(roles.map(async (r) => {
-      const userCount = await User.countDocuments({ roleId: r._id, libraryId: req.user.libraryId });
-      return { ...r.toObject(), userCount };
+      const roleId = r._id ? r._id : r.id;
+      const countQuery = libraryId ? { roleId, libraryId } : { roleId };
+      const userCount = await User.countDocuments(countQuery);
+      return { ...(r.toObject ? r.toObject() : r), userCount };
     }));
 
     res.status(200).json({ success: true, data: rolesWithCounts });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("GET /v1/roles Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

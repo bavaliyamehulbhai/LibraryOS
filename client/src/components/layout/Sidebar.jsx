@@ -14,9 +14,9 @@ const SidebarDropdown = ({ item, collapsed, userRole, hasFeature }) => {
   }, [isActive]);
 
   const visibleChildren = item.children.filter(child => {
+    // Check role match, but bypass feature gating
     const roleMatch = !child.roles || child.roles.includes(userRole);
-    const featureMatch = !child.feature || hasFeature(child.feature);
-    return roleMatch && featureMatch;
+    return roleMatch;
   });
 
   if (visibleChildren.length === 0) return null;
@@ -25,7 +25,7 @@ const SidebarDropdown = ({ item, collapsed, userRole, hasFeature }) => {
     <li className="mb-1">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-4 py-3 mx-2 rounded-md transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white ${isActive ? 'bg-blue-50/50 text-blue-700 dark:bg-blue-900/20' : ''}`}
+        className={`w-full flex items-center justify-between px-4 py-3 mx-2 rounded-md transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white ${isActive ? 'bg-indigo-50/50 text-indigo-700 dark:bg-indigo-900/20' : ''}`}
       >
         <div className="flex items-center">
           <span className="text-xl">{item.icon}</span>
@@ -42,7 +42,7 @@ const SidebarDropdown = ({ item, collapsed, userRole, hasFeature }) => {
               <NavLink 
                 to={child.path} 
                 className={({ isActive }) => 
-                  `block px-4 py-2 mx-2 rounded-md transition-all duration-200 text-sm ${isActive ? 'bg-blue-50 text-blue-700 dark:bg-blue-600 dark:text-white font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'}`
+                  `block px-4 py-2 mx-2 rounded-md transition-all duration-200 text-sm ${isActive ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-600 dark:text-white font-medium hover:translate-x-1' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white hover:translate-x-1'}`
                 }
               >
                 {child.name}
@@ -198,9 +198,9 @@ const Sidebar = () => {
   const userRole = user?.role || (user?.roleId?.name);
   
   const visibleMenu = menuItems.filter(item => {
+    // Check role match, but bypass feature gating
     const roleMatch = !item.roles || item.roles.includes(userRole);
-    const featureMatch = !item.feature || hasFeature(item.feature);
-    return roleMatch && featureMatch;
+    return roleMatch;
   });
 
   return (
@@ -238,7 +238,7 @@ const Sidebar = () => {
                 <NavLink 
                   to={item.path} 
                   className={({ isActive }) => 
-                    `flex items-center px-4 py-3 mx-2 rounded-md transition-all duration-200 ${isActive ? 'bg-blue-50 text-blue-700 dark:bg-blue-600 dark:text-white font-medium shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white'}`
+                    `flex items-center px-4 py-3 mx-2 rounded-md transition-all duration-200 ${isActive ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-600 dark:text-white font-medium shadow-sm hover:translate-x-1' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white hover:translate-x-1'}`
                   }
                 >
                   <span className="text-xl">{item.icon}</span>
@@ -252,7 +252,7 @@ const Sidebar = () => {
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-transparent">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center font-bold text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 shadow-sm">
+          <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm">
             {user?.name?.charAt(0) || "U"}
           </div>
           {!collapsed && (

@@ -7,5 +7,6 @@ router.get("/books", publicController.getPublicCatalog);
 router.get("/books/search", publicController.searchPublicCatalog);
 router.get("/books/:id", publicController.getPublicBookDetails);
 router.get("/stats", publicController.getLibraryStats);
+router.get("/libraries", publicController.getLibraries);
 
 module.exports = router;

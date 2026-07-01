@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
-import { useNavigate, Navigate, Link } from "react-router-dom";
+import { useNavigate, Navigate, Link, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { startAuthentication } from "@simplewebauthn/browser";
@@ -15,7 +15,16 @@ const Login = () => {
   const { isAuthenticated, loading, requires2FA } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("error") === "OAuthFailed") {
+      toast.error("OAuth Login Failed. Ensure your account exists or you have an invitation.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location.search]);
 
   const { register, handleSubmit, formState: { errors } } = useForm();
 
@@ -86,7 +95,7 @@ const Login = () => {
       if (error.name === "NotAllowedError") {
         toast.error("Passkey login cancelled.");
       } else {
-        toast.error("Failed to login with passkey.");
+        toast.error(error.response?.data?.message || "Failed to login with passkey.");
       }
     }
   };
@@ -124,7 +133,7 @@ const Login = () => {
         </div>
 
         <div className="flex items-center justify-between mt-2">
-          <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+          <Link to="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
             Forgot Password?
           </Link>
         </div>
@@ -132,7 +141,7 @@ const Login = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-blue-500/30 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:shadow-none transition-all duration-200 transform hover:-translate-y-0.5"
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/30 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:shadow-none transition-all duration-300 transform hover:-translate-y-1"
         >
           {loading ? "Authenticating..." : "Sign in to Dashboard"}
         </button>
@@ -149,34 +158,42 @@ const Login = () => {
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-4">
-          <a
-            href={`${import.meta.env.VITE_API_URL || '/api'}/v1/oauth/google`}
-            className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            Google
-          </a>
-          <button
-            type="button"
-            onClick={handleEmailOtpLogin}
-            className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            Email OTP
-          </button>
+          <div>
+            <a
+              href={`${import.meta.env.VITE_API_URL || '/api'}/v1/oauth/google`}
+              className="w-full h-full flex items-center justify-center py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Google
+            </a>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={handleEmailOtpLogin}
+              className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Email OTP
+            </button>
+            <p className="text-center text-[10px] text-gray-500 mt-1 dark:text-gray-400">Requires Email above</p>
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handlePasskeyLogin}
-          className="mt-4 w-full flex justify-center py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          Sign in with Passkey / Biometrics
-        </button>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={handlePasskeyLogin}
+            className="w-full flex justify-center py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Sign in with Passkey / Biometrics
+          </button>
+          <p className="text-center text-[10px] text-gray-500 mt-1 dark:text-gray-400">Requires Email above</p>
+        </div>
       </div>
 
       <div className="mt-8 text-center">
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Don't have an account?{" "}
-          <Link to="/register" className="font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+          <Link to="/register" className="font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
             Create one now
           </Link>
         </p>

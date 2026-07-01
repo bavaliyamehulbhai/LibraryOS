@@ -86,3 +86,28 @@ exports.processEmailJob = async (jobData) => {
     throw error; // Let the queue handle retries
   }
 };
+
+exports.sendOtpEmail = async (email, otpCode, libraryId) => {
+  return exports.processEmailJob({
+    email,
+    subject: "Your OTP for LibraryOS",
+    message: `Your One-Time Password is: ${otpCode}. It will expire in 5 minutes.`,
+    libraryId
+  });
+};
+
+exports.sendPasswordResetEmail = async (email, resetUrl) => {
+  return exports.processEmailJob({
+    email,
+    subject: "Reset your LibraryOS Password",
+    message: `Click here to reset your password: <a href="${resetUrl}">${resetUrl}</a>`
+  });
+};
+
+exports.sendSecurityAlertEmail = async (email, title, details) => {
+  return exports.processEmailJob({
+    email,
+    subject: `Security Alert: ${title}`,
+    message: details
+  });
+};

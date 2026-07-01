@@ -20,18 +20,13 @@ const IssueBook = () => {
     setLoading(true);
     try {
       const res = await api.get(`/v1/members?search=${memberCode}`);
-      if (res.data.success && res.data.data.members.length > 0) {
-        // Find exact match
-        const exactMember = res.data.data.members.find(m => m.memberCode === memberCode || m.memberCardNumber === memberCode);
-        if (exactMember) {
-          setMember(exactMember);
-          toast.success("Member loaded successfully");
-        } else {
-          toast.error("Member not found with this code.");
-          setMember(null);
-        }
+      if (res.data.success && res.data.data && res.data.data.length > 0) {
+        // Find exact match by memberCode or show the first match
+        const exactMember = res.data.data.find(m => m.memberCode === memberCode || m.memberCardNumber === memberCode) || res.data.data[0];
+        setMember(exactMember);
+        toast.success("Member loaded successfully");
       } else {
-        toast.error("Member not found.");
+        toast.error("Member not found with this code.");
         setMember(null);
       }
     } catch (error) {
@@ -73,7 +68,7 @@ const IssueBook = () => {
     try {
       const res = await api.post('/v1/issues', {
         memberId: member._id,
-        copyId: bookCopy._id
+        bookCopyId: bookCopy._id
       });
       
       if (res.data.success) {

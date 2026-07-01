@@ -9,20 +9,23 @@ exports.generateTransactionCode = async (libraryId, prefix = "ISS") => {
 
   if (prefix === "PAY") {
     lastRecord = await Payment.findOne({ 
-      libraryId,
       paymentCode: { $regex: `^${prefix}-${year}-` }
     }).sort({ createdAt: -1 });
     codeField = lastRecord?.paymentCode;
   } else if (prefix === "FIN") {
     const Fine = require("../models/Fine");
     lastRecord = await Fine.findOne({ 
-      libraryId,
       fineCode: { $regex: `^${prefix}-${year}-` }
     }).sort({ createdAt: -1 });
     codeField = lastRecord?.fineCode;
+  } else if (prefix === "EML") {
+    const EmailLog = require("../models/EmailLog");
+    lastRecord = await EmailLog.findOne({
+      emailCode: { $regex: `^${prefix}-${year}-` }
+    }).sort({ createdAt: -1 });
+    codeField = lastRecord?.emailCode;
   } else {
     lastRecord = await Transaction.findOne({ 
-      libraryId,
       transactionCode: { $regex: `^${prefix}-${year}-` }
     }).sort({ createdAt: -1 });
     codeField = lastRecord?.transactionCode;

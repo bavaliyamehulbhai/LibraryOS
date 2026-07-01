@@ -1,6 +1,21 @@
 const inventoryService = require("../services/inventoryService");
 const Inventory = require("../models/Inventory");
 const InventoryMovement = require("../models/InventoryMovement");
+const BookCopy = require("../models/BookCopy");
+
+// Search copy by barcode (used by Issue Book screen)
+exports.getCopyByBarcode = async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    const copy = await BookCopy.findOne({ barcode, libraryId: req.user.libraryId })
+      .populate("bookId", "title isbn coverImage price authors")
+      .populate("branchId", "name");
+    if (!copy) return res.status(404).json({ success: false, message: "No book copy found with this barcode" });
+    res.status(200).json({ success: true, data: copy });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 exports.getInventory = async (req, res) => {
   try {

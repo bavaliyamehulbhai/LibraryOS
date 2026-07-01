@@ -306,7 +306,7 @@ const requestOtpLogin = async (req, res) => {
       expiresAt: Date.now() + 5 * 60 * 1000 // 5 Minutes
     });
 
-    await sendOtpEmail(user.email, otpCode);
+    await sendOtpEmail(user.email, otpCode, user.libraryId);
 
     res.json({
       success: true,

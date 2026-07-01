@@ -10,29 +10,22 @@ exports.issueBook = async (libraryId, memberId, bookCopyId, issuedBy) => {
   if (!member) throw new Error("Member not found");
 
   if (member.status === "BLOCKED" || member.status === "SUSPENDED") throw new Error(`Member is currently ${member.status.toLowerCase()}`);
-  if (!member.isVerified) throw new Error("Member profile is not verified");
 
   const plan = await MembershipPlan.findOne({ _id: member.membershipPlanId, libraryId });
-  if (!plan) throw new Error("Member does not have an active membership plan");
-
-  const { MemberCard } = require("../models/MemberCard");
-  const card = await require("../models/MemberCard").findOne({ memberId, libraryId, status: "ACTIVE" });
-  if (!card) {
-    throw new Error("Member does not have an active ID card. Cannot issue book.");
-  }
+  if (!plan) throw new Error("Member does not have an active membership plan assigned. Please assign a plan first.");
 
   if (member.activeCheckouts >= plan.borrowLimit) {
     throw new Error(`Borrowing limit reached. Maximum allowed: ${plan.borrowLimit}`);
   }
 
-  const copy = await BookCopy.findOne({ _id: bookCopyId, libraryId });
+  const copy = await BookCopy.findOne({ _id: bookCopyId, libraryId }).populate('bookId');
   if (!copy) throw new Error("Book copy not found");
-  if (copy.status !== "AVAILABLE") throw new Error(`Book copy is currently ${copy.status}`);
+  if (copy.status !== "AVAILABLE") throw new Error(`Book copy is currently ${copy.status}. Only AVAILABLE copies can be issued.`);
 
   // Calculate due date
   const issueDate = new Date();
   const dueDate = new Date();
-  dueDate.setDate(issueDate.getDate() + plan.issueDuration);
+  dueDate.setDate(issueDate.getDate() + (plan.issueDuration || 14));
 
   // Update Copy
   copy.status = "ISSUED";
@@ -42,21 +35,30 @@ exports.issueBook = async (libraryId, memberId, bookCopyId, issuedBy) => {
   const transaction = await Transaction.create({
     libraryId,
     memberId,
-    bookId: copy.bookId,
+    bookId: copy.bookId ? copy.bookId._id : copy.bookId,
     bookCopyId,
     issueDate,
     dueDate,
     status: "ISSUED",
     issuedBy,
-    maxRenewals: plan.renewalLimit
+    maxRenewals: plan.renewalLimit || 1
   });
+
+  // Update Book available copies
+  if (copy.bookId) {
+    await Book.findByIdAndUpdate(copy.bookId._id || copy.bookId, { $inc: { availableCopies: -1 } });
+  }
 
   // Update Member stats
   member.activeCheckouts += 1;
   await member.save();
 
-  return transaction;
+  return transaction.populate ? await Transaction.findById(transaction._id)
+    .populate('memberId', 'firstName lastName memberCode')
+    .populate('bookId', 'title isbn')
+    .populate('bookCopyId', 'barcode') : transaction;
 };
+
 
 exports.returnBook = async (libraryId, transactionId, returnedBy) => {
   const transaction = await Transaction.findOne({ _id: transactionId, libraryId, status: { $in: ["ISSUED", "RENEWED", "OVERDUE"] } }).populate('memberId');
@@ -85,12 +87,18 @@ exports.returnBook = async (libraryId, transactionId, returnedBy) => {
   await transaction.save();
 
   if (fineAmount > 0) {
+    const { generateTransactionCode } = require("./transactionCodeService");
+    const fineCode = await generateTransactionCode(libraryId, "FIN").catch(() => null);
     await Fine.create({
+      fineCode,
       libraryId,
       transactionId: transaction._id,
       memberId: transaction.memberId._id,
+      fineType: "LATE_RETURN",
       amount: fineAmount,
-      daysLate
+      pendingAmount: fineAmount,
+      reason: `Late return fine — ${daysLate} day(s) overdue`,
+      status: "PENDING"
     });
     
     // Update member's total fines

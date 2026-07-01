@@ -94,14 +94,7 @@ const loginPasskeyOptions = async (req, res) => {
     const user = await User.findOne({ email });
     
     if (!user || user.passkeys.length === 0) {
-      // Return a generic options anyway to prevent email enumeration, 
-      // but without valid credentials to match against.
-      const options = await generateAuthenticationOptions({
-        rpID,
-        allowCredentials: []
-      });
-      challengesStore[email] = options.challenge;
-      return res.json({ success: true, options });
+      return res.status(400).json({ success: false, message: "No passkeys registered for this account." });
     }
 
     const allowCredentials = user.passkeys.map(key => ({

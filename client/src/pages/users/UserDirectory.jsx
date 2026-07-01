@@ -26,10 +26,13 @@ const UserDirectory = () => {
         setRoles(res.data.data);
         if (res.data.data.length > 0) {
           setSelectedRole(res.data.data[0]._id);
+        } else {
+          toast.error("No roles found. Please create one.");
         }
       }
     } catch (error) {
       console.error(error);
+      toast.error(error.response?.data?.message || 'Failed to fetch roles');
     }
   };
 
@@ -49,6 +52,10 @@ const UserDirectory = () => {
   const submitInvite = async (e) => {
     e.preventDefault();
     if (!inviteEmail) return;
+    if (!selectedRole) {
+      toast.error("Please select a role first");
+      return;
+    }
 
     setIsInviting(true);
     try {
@@ -57,17 +64,22 @@ const UserDirectory = () => {
         roleId: selectedRole 
       });
       const json = res.data;
-      if (json.success || res.ok) {
-        toast.success(`Invitation sent to ${inviteEmail}!`);
+      if (json.success) {
+        toast.success(`Invitation created for ${inviteEmail}!`);
+        if (json.inviteLink) {
+          // Copy invite link to clipboard
+          const fullLink = `${window.location.origin}${json.inviteLink}`;
+          navigator.clipboard?.writeText(fullLink).catch(() => {});
+          toast(`Invite link copied to clipboard: ${fullLink}`, { duration: 6000, icon: '🔗' });
+        }
         setIsInviteModalOpen(false);
         setInviteEmail("");
-        // Optionally refetch users here
         fetchUsers();
       } else {
         toast.error(json.message || "Failed to invite user");
       }
     } catch (error) {
-      toast.error("An error occurred");
+      toast.error(error.response?.data?.message || "An error occurred sending invitation");
     } finally {
       setIsInviting(false);
     }
@@ -211,10 +223,18 @@ const UserDirectory = () => {
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow" 
+                  required
                 >
-                  {roles.map(role => (
-                    <option key={role._id} value={role._id}>{role.name}</option>
-                  ))}
+                  {roles.length === 0 ? (
+                    <option value="">No roles found (Refresh page or create one)</option>
+                  ) : (
+                    <>
+                      <option value="">-- Select a Role --</option>
+                      {roles.map(role => (
+                        <option key={role._id} value={role._id}>{role.name}</option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
               <div className="flex justify-end space-x-3">

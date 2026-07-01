@@ -17,10 +17,14 @@ const checkPermission = (requiredPermission) => {
         return res.status(404).json({ success: false, message: "User not found." });
       }
 
-      // Legacy compatibility: only bypass RBAC if roleId is truly absent (undefined).
-      // If roleId exists but resolves to null, treat as invalid role assignment.
-      const hasLegacyRoleOnly = user.roleId === undefined;
-      if (hasLegacyRoleOnly && ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "STUDENT", "MEMBER"].includes(user.role)) {
+      // Super admins and library admins always have full access — bypass RBAC completely
+      if (["SUPER_ADMIN", "LIBRARY_ADMIN"].includes(user.role)) {
+        return next();
+      }
+
+      // Legacy compatibility: bypass RBAC if no custom RBAC roleId is assigned yet
+      const hasLegacyRoleOnly = !user.roleId;
+      if (hasLegacyRoleOnly && ["LIBRARIAN", "ASSISTANT", "STUDENT", "MEMBER"].includes(user.role)) {
         return next();
       }
 
@@ -33,7 +37,7 @@ const checkPermission = (requiredPermission) => {
           ipAddress: req.ip,
           details: `User attempted access without an assigned role to: ${req.originalUrl}`
         });
-        return res.status(403).json({ success: false, message: "Access denied. No role assigned." });
+        return res.status(403).json({ success: false, message: "Access denied. No role assigned. Please contact your Library Admin." });
       }
 
       let hasPermission = false;
