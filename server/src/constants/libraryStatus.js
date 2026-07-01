@@ -1,0 +1,6 @@
+module.exports = {
+  ACTIVE: "ACTIVE",
+  TRIAL: "TRIAL",
+  SUSPENDED: "SUSPENDED",
+  EXPIRED: "EXPIRED"
+};

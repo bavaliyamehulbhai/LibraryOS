@@ -1,0 +1,151 @@
+const QRCode = require("qrcode");
+const BookCopy = require("../models/BookCopy");
+const QRScanLog = require("../models/QRScanLog");
+const AuditLog = require("../models/AuditLog");
+
+const generateQRCode = async (copyCode, libraryId) => {
+  const copy = await BookCopy.findOne({ copyCode, libraryId });
+  if (!copy) throw new Error("Copy not found");
+
+  const qrData = {
+    copyId: copy._id,
+    bookId: copy.bookId,
+    copyCode: copy.copyCode,
+    libraryId: copy.libraryId,
+    url: `${process.env.CLIENT_URL || "http://localhost:5173"}/public/copies/${copy._id}`
+  };
+
+  const qrString = JSON.stringify(qrData);
+
+  // Generate Base64 Data URI
+  const qrImage = await QRCode.toDataURL(qrString, {
+    errorCorrectionLevel: 'H',
+    margin: 2,
+    width: 300
+  });
+
+  if (!copy.qrCode || !copy.qrData) {
+    copy.qrCode = qrImage;
+    copy.qrData = qrString;
+    await copy.save();
+  }
+
+  return { qrImage, qrData };
+};
+
+const generateBulkQRCodes = async (bookId, libraryId) => {
+  const copies = await BookCopy.find({ bookId, libraryId });
+  if (!copies.length) throw new Error("No copies found for this book");
+
+  const results = [];
+  for (const copy of copies) {
+    const data = await generateQRCode(copy.copyCode, libraryId);
+    results.push({
+      copyId: copy._id,
+      copyCode: copy.copyCode,
+      qrImage: data.qrImage
+    });
+  }
+
+  return results;
+};
+
+const scanQRCode = async (copyCode, libraryId, userId, device = "Web Scanner") => {
+  const copy = await BookCopy.findOne({ copyCode, libraryId })
+    .populate("bookId", "title author isbn coverImage")
+    .populate({
+      path: "shelfId",
+      populate: { path: "floorId sectionId rackId" }
+    });
+
+  if (!copy) throw new Error("Invalid QR Code or Copy not found");
+
+  // Log the scan
+  await QRScanLog.create({
+    copyId: copy._id,
+    userId,
+    libraryId,
+    action: "SCAN",
+    device
+  });
+
+  return {
+    book: copy.bookId,
+    copy: {
+      _id: copy._id,
+      copyCode: copy.copyCode,
+      status: copy.status,
+      condition: copy.condition
+    },
+    location: copy.shelfId ? {
+      floor: copy.shelfId.floorId?.name,
+      section: copy.shelfId.sectionId?.name,
+      rack: copy.shelfId.rackId?.rackCode,
+      shelf: copy.shelfId.shelfCode
+    } : null
+  };
+};
+
+const getQRCodeData = async (copyId, libraryId) => {
+  const copy = await BookCopy.findOne({ _id: copyId, libraryId })
+    .populate("bookId", "title author isbn coverImage publisher category")
+    .populate({
+      path: "shelfId",
+      populate: { path: "floorId sectionId rackId" }
+    });
+
+  if (!copy) throw new Error("Copy not found");
+
+  // This is often hit by public visitors
+  await QRScanLog.create({
+    copyId: copy._id,
+    libraryId,
+    action: "VIEW",
+    device: "Mobile/Public"
+  });
+
+  return {
+    book: copy.bookId,
+    copy: {
+      _id: copy._id,
+      copyCode: copy.copyCode,
+      status: copy.status,
+      condition: copy.condition,
+      qrImage: copy.qrCode
+    },
+    location: copy.shelfId ? {
+      floor: copy.shelfId.floorId?.name,
+      section: copy.shelfId.sectionId?.name,
+      rack: copy.shelfId.rackId?.rackCode,
+      shelf: copy.shelfId.shelfCode
+    } : null
+  };
+};
+
+const getStats = async (libraryId) => {
+  const totalQRs = await BookCopy.countDocuments({ libraryId, qrCode: { $exists: true, $ne: null } });
+  
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const scansToday = await QRScanLog.countDocuments({ 
+    libraryId, 
+    createdAt: { $gte: startOfDay } 
+  });
+
+  const totalScans = await QRScanLog.countDocuments({ libraryId });
+
+  return {
+    totalQRs,
+    scansToday,
+    totalScans
+  };
+};
+
+module.exports = {
+  generateQRCode,
+  generateBulkQRCodes,
+  scanQRCode,
+  getQRCodeData,
+  getStats
+};

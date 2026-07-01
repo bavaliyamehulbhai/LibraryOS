@@ -1,0 +1,10 @@
+{
+  "testEnvironment": "node",
+  "verbose": true,
+  "collectCoverage": true,
+  "coverageDirectory": "coverage",
+  "setupFiles": ["<rootDir>/tests/setup.js"],
+  "testPathIgnorePatterns": [
+    "/node_modules/"
+  ]
+}

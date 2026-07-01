@@ -1,0 +1,7 @@
+module.exports = {
+  AVAILABLE: "AVAILABLE",
+  ISSUED: "ISSUED",
+  RESERVED: "RESERVED",
+  LOST: "LOST",
+  DAMAGED: "DAMAGED"
+};
