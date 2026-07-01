@@ -150,7 +150,7 @@ const Login = () => {
 
         <div className="mt-5 grid grid-cols-2 gap-4">
           <a
-            href="/api/v1/oauth/google"
+            href={`${import.meta.env.VITE_API_URL || '/api'}/v1/oauth/google`}
             className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Google
