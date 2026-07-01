@@ -3,17 +3,27 @@ const mongoose = require("mongoose");
 const otpSchema = new mongoose.Schema({
   phone: {
     type: String,
-    required: true,
+    required: false,
+    index: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: false,
     index: true
   },
   otp: {
     type: String,
-    required: true
+    required: false
+  },
+  code: {
+    type: String,
+    required: false
   },
   expiresAt: {
     type: Date,
     required: true,
-    index: { expires: '1m' } // Mongoose TTL index to automatically delete expired OTPs
+    index: { expires: '1m' } 
   },
   attempts: {
     type: Number,
@@ -23,9 +33,17 @@ const otpSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isUsed: {
+    type: Boolean,
+    default: false
+  },
   context: {
     type: String,
     enum: ["LOGIN", "REGISTRATION", "PASSWORD_RESET"],
+    default: "LOGIN"
+  },
+  purpose: {
+    type: String,
     default: "LOGIN"
   }
 }, { timestamps: true });
