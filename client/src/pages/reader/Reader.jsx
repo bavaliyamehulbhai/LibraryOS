@@ -178,11 +178,16 @@ const Reader = () => {
   const getFileUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
-    // If we are in dev mode and it's a relative URL, point to backend port 5000
-    if (import.meta.env.DEV) {
-      return `http://localhost:5000${url}`;
+    
+    // Construct absolute URL using api baseURL to prevent CORS/404 in production
+    let base = api.defaults.baseURL || 'http://localhost:5000';
+    if (base.endsWith('/api') || base.endsWith('/api/v1')) {
+      base = base.replace(/\/api(\/v1)?$/, '');
     }
-    return url;
+    if (base.endsWith('/') && url.startsWith('/')) {
+      base = base.slice(0, -1);
+    }
+    return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   if (loading) return <div className="p-20 text-center text-gray-500">Loading Reader Engine...</div>;
