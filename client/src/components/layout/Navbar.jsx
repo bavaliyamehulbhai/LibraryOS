@@ -29,6 +29,13 @@ const Navbar = () => {
   return (
     <div className="h-16 glass-nav shadow-sm flex items-center justify-between px-6 sticky top-0 z-10">
       
+      {/* Mobile Branding (Visible only on small screens) */}
+      <div className="flex md:hidden items-center font-bold text-lg truncate text-gray-900 dark:text-white">
+        <span className="mr-2">📚</span>
+        LibraryOS
+      </div>
+
+      {/* Desktop Search (Visible only on medium+ screens) */}
       <div className="flex-1 hidden md:flex items-center gap-4">
         <GlobalSearch />
       </div>
