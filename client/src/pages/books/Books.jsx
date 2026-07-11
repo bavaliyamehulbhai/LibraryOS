@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useBooks, useDeleteBook } from "../../hooks/useBooks";
 import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
 import toast from "react-hot-toast";
+import { confirmAlert } from "../../utils/confirmAlert";
 
 const Books = () => {
   const [search, setSearch] = useState("");
@@ -10,8 +11,8 @@ const Books = () => {
   const { data, isLoading, isError } = useBooks({ search, page, limit: 10 });
   const { mutate: deleteBook } = useDeleteBook();
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this book?")) {
+  const handleDelete = async (id) => {
+    if (await confirmAlert("Are you sure you want to delete this book?")) {
       deleteBook(id, {
         onSuccess: () => toast.success("Book deleted successfully"),
         onError: () => toast.error("Failed to delete book")

@@ -41,7 +41,10 @@ exports.markAttendance = async (registrationId) => {
 
 exports.generateEventIdea = async (promptText) => {
   if (!process.env.GROQ_API_KEY) {
-    return "AI Features are disabled without an GROQ_API_KEY. Please provide a title manually.";
+    return {
+       title: "API Key Missing",
+       description: "AI Features are disabled without a GROQ_API_KEY. Please provide a title manually."
+    };
   }
 
   try {

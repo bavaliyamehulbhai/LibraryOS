@@ -9,7 +9,9 @@ Welcome to **LibraryOS**, a modern, comprehensive, and scalable Library Manageme
 - **Physical Book Circulation:** Track issued books, due dates, renewals, and overdue fines.
 - **Member Dashboard:** A personalized space for members to view their Active Membership Plans, Digital ID Cards, Borrowing Limits, and Current Reservations.
 - **Payment & Subscriptions:** Integrated with Razorpay for membership renewals and fine collections.
-- **Automated Notifications:** Email, SMS, and WhatsApp alerts for overdue books, reservations, and successful payments.
+- **Automated Notifications:** Real Email, SMS, and WhatsApp alerts for overdue books, reservations, and successful payments.
+- **AI Study Copilot:** An intelligent assistant to help students and researchers navigate study materials.
+- **Premium UI/UX:** Ultra-minimalist and highly responsive design tailored for mobile and desktop.
 
 ## 🛠️ Technology Stack
 
@@ -58,16 +60,6 @@ npm install
 npm run dev
 ```
 The frontend will start running on `http://localhost:5173`.
-
-## 🔐 Default Test Credentials
-
-You can use the following credentials to explore different roles within the system:
-
-| Role | Email | Password |
-|------|-------|----------|
-| **Super Admin** | `super@libraryos.com` | `password123` |
-| **Library Admin** | `admin@cpl-01.com` | `password123` |
-| **Member** | `aarav.sharma.cpl-01@example.com` | `password123` |
 
 ## 📦 Deployment
 This project is deployment-ready. 

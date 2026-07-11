@@ -27,7 +27,8 @@ const {
  refreshAccessToken,
  logoutAll,
  setup2FA,
- verify2FASetup
+ verify2FASetup,
+ updateProfile
 } = require("../controllers/authController");
 
 router.post("/register", registerLimiter, registerUser);
@@ -37,6 +38,7 @@ router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/me", authMiddleware, getCurrentUser);
+router.put("/profile", authMiddleware, updateProfile);
 router.post("/logout", authMiddleware, logoutUser);
 router.post("/refresh", refreshAccessToken);
 router.post("/logout-all", authMiddleware, logoutAll);

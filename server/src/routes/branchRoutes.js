@@ -15,11 +15,11 @@ const { createBranchSchema, updateBranchSchema } = require("../validators/branch
 const authMiddleware = require("../middleware/authMiddleware");
 const authorize = require("../middleware/roleMiddleware");
 
-// All branch routes require LIBRARY_ADMIN access
-router.use(authMiddleware, authorize("LIBRARY_ADMIN", "SUPER_ADMIN"));
-
-// Create Branch Route
+// Public Route for Onboarding Branch Creation
 router.post("/", validate(createBranchSchema), createBranch);
+
+// All other branch routes require LIBRARY_ADMIN access
+router.use(authMiddleware, authorize("LIBRARY_ADMIN", "SUPER_ADMIN"));
 
 // Get All Branches
 router.get("/", getBranches);

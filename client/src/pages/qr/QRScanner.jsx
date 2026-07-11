@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useScanQR } from "../../hooks/useQR";
+import { useScanQR, useSelfCheckoutQR, useSelfReturnQR } from "../../hooks/useQR";
 import toast from "react-hot-toast";
 import { ArrowLeft, QrCode, BookOpen, MapPin, Tag, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -9,11 +9,44 @@ const QRScanner = () => {
   const [result, setResult] = useState(null);
   
   const scanQRApi = useScanQR();
+  const selfCheckoutApi = useSelfCheckoutQR();
+  const selfReturnApi = useSelfReturnQR();
+  
   const inputRef = useRef(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  const handleSelfCheckout = (copyCode) => {
+    selfCheckoutApi.mutate({ copyCode }, {
+      onSuccess: (res) => {
+        toast.success(res.message || "Successfully checked out!");
+        // Refresh scan context to show updated status
+        scanQRApi.mutate({ copyCode, device: "Admin Portal Scanner" }, {
+          onSuccess: (updatedRes) => setResult({ success: true, data: updatedRes.data })
+        });
+      },
+      onError: (err) => {
+        toast.error(err.response?.data?.message || "Failed to check out");
+      }
+    });
+  };
+
+  const handleSelfReturn = (copyCode) => {
+    selfReturnApi.mutate({ copyCode }, {
+      onSuccess: (res) => {
+        toast.success(res.message || "Successfully returned!");
+        // Refresh scan context to show updated status
+        scanQRApi.mutate({ copyCode, device: "Admin Portal Scanner" }, {
+          onSuccess: (updatedRes) => setResult({ success: true, data: updatedRes.data })
+        });
+      },
+      onError: (err) => {
+        toast.error(err.response?.data?.message || "Failed to return book");
+      }
+    });
+  };
 
   const handleScan = (e) => {
     e.preventDefault();
@@ -129,6 +162,26 @@ const QRScanner = () => {
                     ) : (
                       <span className="text-sm text-gray-500">No physical location mapped.</span>
                     )}
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => handleSelfCheckout(result.data.copy?.copyCode)}
+                      disabled={selfCheckoutApi.isLoading || result.data.copy?.status !== "AVAILABLE"}
+                      className="flex-1 flex items-center justify-center gap-2 bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
+                    >
+                      <CheckCircle size={20} />
+                      {selfCheckoutApi.isLoading ? "Processing..." : "Self Check-Out (Issue to Me)"}
+                    </button>
+                    
+                    <button
+                      onClick={() => handleSelfReturn(result.data.copy?.copyCode)}
+                      disabled={selfReturnApi.isLoading || !["ISSUED", "RENEWED", "OVERDUE"].includes(result.data.copy?.status)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition"
+                    >
+                      <ArrowLeft size={20} />
+                      {selfReturnApi.isLoading ? "Processing..." : "Self Return"}
+                    </button>
                   </div>
                   
                   <Link to={`/copies/${result.data.copy?._id}`} className="block text-center w-full bg-gray-100 text-gray-700 font-medium py-2 rounded hover:bg-gray-200 transition">

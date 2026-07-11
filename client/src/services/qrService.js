@@ -29,3 +29,13 @@ export const getPublicQRData = async (copyId, libraryId) => {
   const response = await axios.get(`${getApiUrl()}/v1/qr/${copyId}?libraryId=${libraryId}`);
   return response.data;
 };
+
+export const selfCheckoutQR = async (data) => {
+  const response = await api.post("/v1/qr/self-checkout", data);
+  return response.data;
+};
+
+export const selfReturnQR = async (data) => {
+  const response = await api.post("/v1/qr/self-return", data);
+  return response.data;
+};

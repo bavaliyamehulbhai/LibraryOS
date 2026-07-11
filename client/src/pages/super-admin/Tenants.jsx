@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { confirmAlert } from '../../utils/confirmAlert';
 import toast from 'react-hot-toast';
 import { Building2, Ban, CheckCircle } from 'lucide-react';
 
@@ -25,7 +26,7 @@ const TenantsDashboard = () => {
   };
 
   const handleToggleStatus = async (id, currentStatus) => {
-    if (!window.confirm(`Are you sure you want to ${currentStatus ? 'suspend' : 'activate'} this tenant?`)) return;
+    if (!(await confirmAlert(`Are you sure you want to ${currentStatus ? 'suspend' : 'activate'} this tenant?`))) return;
     
     try {
       const res = await api.put(`/super-admin/tenants/${id}/toggle`);

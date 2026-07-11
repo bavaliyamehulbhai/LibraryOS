@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useGallery, useCoverStats, useUploadCover, useRemoveCover } from "../../hooks/useMedia";
 import { Image as ImageIcon, UploadCloud, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
+import { confirmAlert } from "../../utils/confirmAlert";
 
 const CoverManager = () => {
   const [params, setParams] = useState({ page: 1, limit: 10, hasCover: "false", search: "" });
@@ -27,7 +28,7 @@ const CoverManager = () => {
   };
 
   const handleRemove = async (bookId) => {
-    if (window.confirm("Are you sure you want to remove this cover image?")) {
+    if (await confirmAlert("Are you sure you want to remove this cover image?")) {
       try {
         await removeMutation.mutateAsync(bookId);
       } catch (err) {

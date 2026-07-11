@@ -11,6 +11,7 @@ router.use(authMiddleware);
 router.get("/articles", checkPermission([PERMISSIONS.KNOWLEDGE_VIEW]), knowledgeController.getArticles);
 router.get("/articles/:id", checkPermission([PERMISSIONS.KNOWLEDGE_VIEW]), knowledgeController.getArticleById);
 router.post("/articles", checkPermission([PERMISSIONS.KNOWLEDGE_MANAGE]), knowledgeController.createArticle);
+router.post("/articles/:id/feedback", checkPermission([PERMISSIONS.KNOWLEDGE_VIEW]), knowledgeController.submitFeedback);
 
 // FAQs
 router.get("/faqs", checkPermission([PERMISSIONS.KNOWLEDGE_VIEW]), knowledgeController.getFAQs);

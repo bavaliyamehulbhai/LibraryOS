@@ -54,10 +54,43 @@ const AnalyticsDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Platform Health Score" value={`${data.health?.score || 0}/100`} icon={Heart} colorClass="text-red-500" bgColorClass="bg-red-50" trend={data.health?.status} trendUp={data.health?.status === 'HEALTHY'} />
-        <StatCard title="Churn Risk Level" value={data.churn?.riskLevel || 'Unknown'} icon={ShieldAlert} colorClass="text-orange-500" bgColorClass="bg-orange-50" />
-        <StatCard title="Engagement Score" value={data.churn?.factors?.engagementScore || 0} icon={TrendingUp} colorClass="text-blue-500" bgColorClass="bg-blue-50" />
-        <StatCard title="Support Tickets" value={data.churn?.factors?.supportTickets || 0} icon={Ticket} colorClass="text-purple-500" bgColorClass="bg-purple-50" />
+        <div className="bg-gradient-to-br from-red-50 to-white dark:from-red-900/20 dark:to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-md border border-red-100 dark:border-red-800/30 transition-all duration-300 hover:-translate-y-1 group">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-red-600 transition-colors">Platform Health</p>
+            <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-lg text-red-600 dark:text-red-400"><Heart size={20} /></div>
+          </div>
+          <h2 className="text-4xl font-black text-gray-900 dark:text-white">{data.health?.score || 0}<span className="text-xl text-gray-400">/100</span></h2>
+          <div className={`mt-2 text-sm font-bold px-2 py-1 rounded-md inline-flex ${data.health?.status === 'Healthy' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            Status: {data.health?.status || 'Unknown'}
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-orange-50 to-white dark:from-orange-900/20 dark:to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-md border border-orange-100 dark:border-orange-800/30 transition-all duration-300 hover:-translate-y-1 group">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-orange-600 transition-colors">Churn Risk Level</p>
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg text-orange-600 dark:text-orange-400"><ShieldAlert size={20} /></div>
+          </div>
+          <h2 className="text-4xl font-black text-orange-600 dark:text-orange-400">{data.churn?.riskLevel || 'Unknown'}</h2>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{data.churn?.churnRisk || 0}% risk score</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-md border border-blue-100 dark:border-blue-800/30 transition-all duration-300 hover:-translate-y-1 group">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Inactive Members</p>
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg text-blue-600 dark:text-blue-400"><TrendingUp size={20} /></div>
+          </div>
+          <h2 className="text-4xl font-black text-blue-600 dark:text-blue-400">{data.churn?.inactiveMembers || 0}</h2>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Out of {data.churn?.totalMembers || 0} total</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-md border border-purple-100 dark:border-purple-800/30 transition-all duration-300 hover:-translate-y-1 group">
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-purple-600 transition-colors">Overdue Books</p>
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg text-purple-600 dark:text-purple-400"><Ticket size={20} /></div>
+          </div>
+          <h2 className="text-4xl font-black text-purple-600 dark:text-purple-400">{data.health?.metrics?.overdueTransactions || 0}</h2>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Pending returns</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -100,20 +133,23 @@ const AnalyticsDashboard = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6">AI Automated Insights</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+          <span className="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-lg text-indigo-600 dark:text-indigo-400 mr-3">💡</span>
+          AI Automated Insights
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {data.insights.map((insight, idx) => (
-            <div key={idx} className={`p-4 rounded-lg border ${insight.type === 'POSITIVE' ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800' : insight.type === 'WARNING' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'}`}>
-              <div className={`flex items-center mb-2 ${insight.type === 'POSITIVE' ? 'text-green-600 dark:text-green-400' : insight.type === 'WARNING' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                <span className="text-xl mr-2">{insight.type === 'POSITIVE' ? '📈' : insight.type === 'WARNING' ? '⚠️' : '🚀'}</span>
-                <span className="font-semibold">{insight.category}</span>
+            <div key={idx} className={`p-5 rounded-xl border transform transition hover:scale-[1.02] ${insight.type?.toUpperCase() === 'POSITIVE' ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 border-green-100 dark:border-green-800/30' : insight.type?.toUpperCase() === 'WARNING' ? 'bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border-yellow-100 dark:border-yellow-800/30' : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-100 dark:border-blue-800/30'}`}>
+              <div className={`flex items-center mb-3 ${insight.type?.toUpperCase() === 'POSITIVE' ? 'text-green-600 dark:text-green-400' : insight.type?.toUpperCase() === 'WARNING' ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                <span className="text-2xl mr-3">{insight.type?.toUpperCase() === 'POSITIVE' ? '📈' : insight.type?.toUpperCase() === 'WARNING' ? '⚠️' : '🚀'}</span>
+                <span className="font-bold text-lg">{insight.title || insight.category}</span>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{insight.content}</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{insight.description || insight.content}</p>
             </div>
           ))}
-          {data.insights.length === 0 && (
-            <div className="col-span-3 text-center text-gray-500 py-4">No AI insights generated yet.</div>
+          {(!data.insights || data.insights.length === 0) && (
+            <div className="col-span-2 text-center text-gray-500 py-8 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">No AI insights generated yet. Data is building up!</div>
           )}
         </div>
       </div>

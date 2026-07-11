@@ -37,31 +37,60 @@ exports.createSubscription = async (libraryId, planId, couponCode = null) => {
   // 1. Create customer if not exists
   if (!customerId) {
     const org = await Organization.findOne({ tenantId: libraryId });
-    const customer = await razorpay.customers.create({
-      name: org?.libraryName || "LibraryOS Customer",
-      email: org?.contactEmail || "admin@example.com",
-      notes: { libraryId: libraryId ? String(libraryId) : "unknown" }
-    });
+    let customer;
+    const initialEmail = org?.contactEmail || `admin_${Date.now()}@example.com`;
+    try {
+      customer = await razorpay.customers.create({
+        name: org?.libraryName || "LibraryOS Customer",
+        email: initialEmail,
+        notes: { libraryId: libraryId ? String(libraryId) : "unknown" }
+      });
+    } catch (err) {
+      if (err.statusCode === 400 && err.error?.description?.includes("already exists")) {
+        customer = await razorpay.customers.create({
+          name: org?.libraryName || "LibraryOS Customer",
+          email: `user_${Date.now()}@libraryos.com`,
+          notes: { libraryId: libraryId ? String(libraryId) : "unknown" }
+        });
+      } else {
+        throw err;
+      }
+    }
     customerId = customer.id;
     subscriptionModel.razorpayCustomerId = customerId;
     // We do NOT save pendingCoupon here yet, just setup customer
     await subscriptionModel.save();
   }
 
-  // 2. Create Razorpay Subscription
-  let rzpSubscription;
+  // 2. Create Razorpay Order (One-Time Payment instead of Recurring to bypass Test Account limits)
+  let rzpOrder;
   try {
-    rzpSubscription = await razorpay.subscriptions.create({
-      plan_id: plan.razorpayPlanId,
-      customer_notify: 1,
-      total_count: plan.billingCycle === "YEARLY" ? 5 : 60, // Arbitrary future renewals
-      customer_id: customerId
-    });
-  } catch (apiError) {
-    if (apiError.error?.description?.includes('invalid') || apiError.statusCode === 400) {
-      throw new Error(`Razorpay Error: The plan ID '${plan.razorpayPlanId}' is invalid or missing in your Razorpay Dashboard. Please create it first.`);
+    if (plan.price > 0) {
+      rzpOrder = await razorpay.orders.create({
+        amount: Math.round(plan.price * 100),
+        currency: "INR",
+        receipt: "receipt_" + subscriptionModel._id.toString()
+      });
+    } else {
+      // Free plan - just mock it
+      subscriptionModel.status = "ACTIVE";
+      subscriptionModel.startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + (plan.billingCycle === "YEARLY" ? 12 : 1));
+      subscriptionModel.endDate = endDate;
+      await subscriptionModel.save();
+
+      return {
+        subscriptionId: "sub_mock_" + Date.now(),
+        planId: plan._id,
+        planName: plan.planName || plan.name,
+        mockBypass: true
+      };
     }
-    throw apiError;
+  } catch (apiError) {
+    console.error("Failed to create Order for Subscription", apiError);
+    const rawError = apiError.error?.description || apiError.message || JSON.stringify(apiError);
+    throw new Error(`Razorpay Integration Error: ${rawError}`);
   }
 
   // 3. Temporarily save the coupon code to apply when webhook fires
@@ -72,8 +101,9 @@ exports.createSubscription = async (libraryId, planId, couponCode = null) => {
 
     fs.appendFileSync('./logs/debug.log', `rzpService.createSubscription: success\n`);
     return {
-      subscriptionId: rzpSubscription.id,
+      subscriptionId: rzpOrder.id, // Reusing subscriptionId field for order.id
       planId: plan._id,
+      planName: plan.planName || plan.name,
       razorpayPlanId: plan.razorpayPlanId
     };
   } catch (err) {
@@ -103,13 +133,13 @@ exports.cancelSubscription = async (libraryId) => {
   return subscription;
 };
 
-exports.verifyPayment = (razorpay_payment_id, razorpay_subscription_id, razorpay_signature) => {
+exports.verifyPayment = (razorpay_payment_id, razorpay_order_id, razorpay_signature) => {
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) return true; // Mock mode fallback
 
   const expectedSignature = crypto
     .createHmac("sha256", secret)
-    .update(razorpay_payment_id + "|" + razorpay_subscription_id)
+    .update(razorpay_order_id + "|" + razorpay_payment_id)
     .digest("hex");
 
   return expectedSignature === razorpay_signature;

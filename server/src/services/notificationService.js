@@ -39,7 +39,8 @@ exports.getUserNotifications = async (userId, tenantId = null) => {
   const query = { 
     $or: [
       { recipientId: userId },
-      { recipientId: null, tenantId: tenantId } // Global tenant announcements
+      { recipientId: null, tenantId: tenantId }, // Global tenant announcements
+      { recipientId: null, tenantId: null }      // System-wide global announcements
     ],
     channel: "IN_APP"
   };
@@ -47,6 +48,15 @@ exports.getUserNotifications = async (userId, tenantId = null) => {
   return await Notification.find(query)
     .sort({ createdAt: -1 })
     .limit(50); // Get latest 50
+};
+
+/**
+ * Get all global announcements sent by admins
+ */
+exports.getGlobalAnnouncements = async () => {
+  return await Notification.find({ type: "ANNOUNCEMENT" })
+    .sort({ createdAt: -1 })
+    .limit(50);
 };
 
 /**

@@ -1,27 +1,21 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import MobileBottomNav from "./MobileBottomNav";
 import { FeatureProvider } from "../common/FeatureGuard";
-import { Link } from "react-router-dom";
-import { Bell } from "lucide-react";
 
 const DashboardLayout = () => {
   return (
     <FeatureProvider>
-      <div className="app" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <div className="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 relative">
         <Sidebar />
-        <div className="content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           <Navbar />
-          <div className="flex items-center gap-4">
-            <Link to="/notifications" className="relative p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-              <Bell className="w-5 h-5" />
-            </Link>
-          </div>
-          <main style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6 relative z-0">
             <Outlet />
           </main>
         </div>
+        <MobileBottomNav />
       </div>
     </FeatureProvider>
   );

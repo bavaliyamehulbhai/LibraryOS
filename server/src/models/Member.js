@@ -54,6 +54,10 @@ const memberSchema = new mongoose.Schema(
       enum: ["ACTIVE", "INACTIVE", "BLOCKED", "SUSPENDED"],
       default: "ACTIVE"
     },
+    blockReason: {
+      type: String,
+      default: null
+    },
     isVerified: {
       type: Boolean,
       default: false

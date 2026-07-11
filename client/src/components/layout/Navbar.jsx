@@ -29,7 +29,7 @@ const Navbar = () => {
   return (
     <div className="h-16 glass-nav shadow-sm flex items-center justify-between px-6 sticky top-0 z-10">
       
-      <div className="flex-1 flex items-center">
+      <div className="flex-1 hidden md:flex items-center gap-4">
         <GlobalSearch />
       </div>
 

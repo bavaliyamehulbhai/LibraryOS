@@ -1,6 +1,7 @@
 const MemberCard = require("../models/MemberCard");
 const Member = require("../models/Member");
 const MembershipPlan = require("../models/MembershipPlan");
+const Library = require("../models/Library");
 const bwipjs = require("bwip-js");
 const qrcode = require("qrcode");
 const PDFDocument = require("pdfkit");
@@ -22,7 +23,7 @@ const generateBarcodeBase64 = (text) => {
       text: text,            // Text to encode
       scale: 3,              // 3x scaling factor
       height: 10,            // Bar height, in millimeters
-      includetext: true,     // Show human-readable text
+      includetext: false,    // Do not show human-readable text (prevents clipping)
       textxalign: 'center',  // Always good to set this
     }, (err, png) => {
       if (err) {
@@ -36,7 +37,8 @@ const generateBarcodeBase64 = (text) => {
 
 const generateQRBase64 = async (data) => {
   try {
-    return await qrcode.toDataURL(JSON.stringify(data));
+    const textData = typeof data === 'string' ? data : JSON.stringify(data);
+    return await qrcode.toDataURL(textData);
   } catch (err) {
     throw err;
   }
@@ -77,12 +79,14 @@ exports.generateCard = async (libraryId, memberId) => {
   const cardNumber = await this.generateMemberCardNumber(libraryId);
   const barcodeBase64 = await generateBarcodeBase64(cardNumber);
   
-  const qrData = {
-    memberId: member._id,
-    memberCode: member.memberCode,
-    cardNumber: cardNumber
-  };
-  const qrCodeBase64 = await generateQRBase64(qrData);
+  const library = await Library.findById(libraryId);
+  const qrDataText = `Library: ${library ? library.name : 'LibraryOS'}
+Member: ${member.firstName} ${member.lastName}
+ID: ${member.memberCode}
+Card: ${cardNumber}
+Plan: ${member.membershipPlanId?.name || 'N/A'}
+Expires: ${getExpiryDate(member.membershipPlanId?.planType).toLocaleDateString()}`;
+  const qrCodeBase64 = await generateQRBase64(qrDataText);
 
   let planType = "STUDENT";
   if (member.membershipPlanId) {
@@ -117,10 +121,12 @@ exports.getCards = async (libraryId, filters = {}) => {
 };
 
 exports.getCardById = async (libraryId, id) => {
-  const card = await MemberCard.findOne({ _id: id, libraryId }).populate({
-    path: "memberId",
-    populate: { path: "membershipPlanId" }
-  });
+  const card = await MemberCard.findOne({ _id: id, libraryId })
+    .populate({
+      path: "memberId",
+      populate: { path: "membershipPlanId" }
+    })
+    .populate("libraryId", "name");
   if (!card) throw new Error("Card not found");
   return card;
 };
@@ -176,6 +182,20 @@ exports.printCardToPDF = async (libraryId, id) => {
   const member = card.memberId;
   const planName = member.membershipPlanId ? member.membershipPlanId.name : "N/A";
 
+  let freshBarcode, freshQr;
+  try {
+    freshBarcode = await generateBarcodeBase64(card.cardNumber);
+    const qrDataText = `Library: ${card.libraryId?.name || 'LibraryOS'}
+Member: ${member.firstName} ${member.lastName}
+ID: ${member.memberCode}
+Card: ${card.cardNumber}
+Plan: ${planName}
+Expires: ${new Date(card.expiryDate).toLocaleDateString()}`;
+    freshQr = await generateQRBase64(qrDataText);
+  } catch (e) {
+    console.error("Failed generating images for PDF", e);
+  }
+
   return new Promise((resolve, reject) => {
     try {
       // Standard CR80 card size (3.375 x 2.125 inches) -> points (1 inch = 72 points)
@@ -194,47 +214,69 @@ exports.printCardToPDF = async (libraryId, id) => {
       });
 
       // --- Front Side ---
+      doc.save();
+      // Draw rounded rectangle for clipping (radius 10)
+      doc.roundedRect(0, 0, 243, 153, 10).clip();
+      
       doc.rect(0, 0, 243, 153).fill('#ffffff'); // white background
-      
+
       // Header Ribbon
-      doc.rect(0, 0, 243, 30).fill('#2563eb');
-      doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold').text('LibraryOS', 10, 10);
-      
+      doc.rect(0, 0, 243, 40).fill('#3b82f6'); 
+      doc.fillColor('#ffffff').fontSize(14).font('Helvetica-Bold').text('LibraryOS', 15, 12);
+      doc.fillColor('#eff6ff').fontSize(7).font('Helvetica-Bold').text('MEMBER ID', 180, 16);
+
       // Photo placeholder (Left side)
-      doc.rect(10, 40, 60, 75).fill('#e5e7eb');
-      doc.fillColor('#9ca3af').fontSize(8).font('Helvetica').text('PHOTO', 25, 75);
+      const initial = member.firstName ? member.firstName.charAt(0).toUpperCase() : '?';
+      doc.roundedRect(15, 50, 45, 45, 5).fill('#e0e7ff'); 
+      doc.fillColor('#6366f1').fontSize(26).font('Helvetica-Bold').text(initial, 15, 62, { width: 45, align: 'center' });
+
+      // QR Code (Bottom Left)
+      if (freshQr && freshQr.includes(',')) {
+        const qrBuffer = Buffer.from(freshQr.split(',')[1], 'base64');
+        doc.image(qrBuffer, 15, 100, { width: 45, height: 45 });
+      }
 
       // Details (Right side)
-      doc.fillColor('#111827').fontSize(12).font('Helvetica-Bold').text(`${member.firstName} ${member.lastName}`, 80, 45);
-      doc.fillColor('#4b5563').fontSize(9).font('Helvetica').text(`ID: ${member.memberCode}`, 80, 60);
-      doc.fillColor('#4b5563').fontSize(9).text(`Plan: ${planName}`, 80, 72);
+      doc.fillColor('#111827').fontSize(12).font('Helvetica-Bold').text(`${member.firstName} ${member.lastName}`.toUpperCase(), 75, 50);
+      doc.fillColor('#4f46e5').fontSize(7).font('Helvetica-Bold').text(planName.toUpperCase(), 75, 65);
       
-      // Barcode
-      if (card.barcode) {
-        const barcodeBuffer = Buffer.from(card.barcode.split(',')[1], 'base64');
-        doc.image(barcodeBuffer, 80, 95, { width: 140, height: 25 });
+      doc.fillColor('#9ca3af').fontSize(7).font('Helvetica-Bold').text('ID:', 75, 80);
+      doc.fillColor('#4b5563').fontSize(7).font('Helvetica').text(member.memberCode, 115, 80);
+      
+      doc.fillColor('#9ca3af').fontSize(7).font('Helvetica-Bold').text('ISSUED:', 75, 90);
+      doc.fillColor('#4b5563').fontSize(7).font('Helvetica').text(new Date(card.issueDate).toLocaleDateString(), 115, 90);
+
+      doc.fillColor('#9ca3af').fontSize(7).font('Helvetica-Bold').text('EXPIRES:', 75, 100);
+      doc.fillColor('#4b5563').fontSize(7).font('Helvetica').text(new Date(card.expiryDate).toLocaleDateString(), 115, 100);
+
+      // Barcode (Bottom Right)
+      if (freshBarcode && freshBarcode.includes(',')) {
+        const barcodeBuffer = Buffer.from(freshBarcode.split(',')[1], 'base64');
+        doc.image(barcodeBuffer, 125, 115, { width: 105, height: 25 });
       }
+
+      doc.restore();
 
       doc.addPage();
 
       // --- Back Side ---
+      doc.save();
+      doc.roundedRect(0, 0, 243, 153, 10).clip();
+
       doc.rect(0, 0, 243, 153).fill('#ffffff');
       doc.rect(0, 0, 243, 20).fill('#1f2937'); // dark header
       doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold').text('If found, please return to the library.', 10, 6, { align: 'center' });
 
-      // QR Code
-      if (card.qrCode) {
-        const qrBuffer = Buffer.from(card.qrCode.split(',')[1], 'base64');
-        doc.image(qrBuffer, 10, 30, { width: 60, height: 60 });
-      }
+      doc.fillColor('#111827').fontSize(10).font('Helvetica-Bold').text('Terms & Conditions', 25, 35);
+      
+      doc.fillColor('#4b5563').fontSize(6).font('Helvetica');
+      doc.text('1. This card is non-transferable.', 25, 50, { width: 190 });
+      doc.text('2. The cardholder is responsible for all materials borrowed.', { width: 190 });
+      doc.text('3. Report lost cards immediately.', { width: 190 });
 
-      doc.fillColor('#111827').fontSize(10).font('Helvetica-Bold').text('Terms & Conditions', 80, 30);
-      doc.fillColor('#4b5563').fontSize(6).font('Helvetica')
-         .text('1. This card is non-transferable.', 80, 45)
-         .text('2. The cardholder is responsible for all materials borrowed.', 80, 55)
-         .text('3. Report lost cards immediately.', 80, 65);
+      doc.fillColor('#ef4444').fontSize(8).font('Helvetica-Bold').text(`Expires: ${new Date(card.expiryDate).toLocaleDateString()}`, 25, 120);
 
-      doc.fillColor('#ef4444').fontSize(8).font('Helvetica-Bold').text(`Expires: ${new Date(card.expiryDate).toLocaleDateString()}`, 80, 85);
+      doc.restore();
 
       doc.end();
     } catch (err) {

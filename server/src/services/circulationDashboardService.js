@@ -12,7 +12,8 @@ exports.getOverviewStats = async (libraryId) => {
     activeIssues,
     overdueBooks,
     pendingFines,
-    pendingReservations
+    pendingReservations,
+    totalRevenue
   ] = await Promise.all([
     Book.countDocuments({ libraryId }),
     Member.countDocuments({ libraryId, status: "ACTIVE" }),
@@ -22,7 +23,11 @@ exports.getOverviewStats = async (libraryId) => {
       { $match: { libraryId: new mongoose.Types.ObjectId(libraryId), status: "UNPAID" } },
       { $group: { _id: null, total: { $sum: "$amount" } } }
     ]),
-    Reservation.countDocuments({ libraryId, status: "PENDING" })
+    Reservation.countDocuments({ libraryId, status: "PENDING" }),
+    mongoose.model("Payment").aggregate([
+      { $match: { libraryId: new mongoose.Types.ObjectId(libraryId), status: "SUCCESS" } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ])
   ]);
 
   return {
@@ -31,7 +36,8 @@ exports.getOverviewStats = async (libraryId) => {
     activeIssues,
     overdueBooks,
     pendingFines: pendingFines[0]?.total || 0,
-    pendingReservations
+    pendingReservations,
+    totalRevenue: totalRevenue[0]?.total || 0
   };
 };
 
@@ -70,4 +76,69 @@ exports.getActivityFeed = async (libraryId) => {
 
   feed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   return feed.slice(0, 15);
+};
+
+exports.getChartData = async (libraryId, daysParam = 7) => {
+  // Generate the last N days array based on local server time
+  const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+
+  for (let i = daysParam - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push({
+      date: d,
+      name: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      issues: 0,
+      returns: 0,
+      fines: 0
+    });
+  }
+
+  const startDate = days[0].date;
+  const endDate = new Date(today);
+  endDate.setHours(23, 59, 59, 999); // End of today
+
+  const [transactions, fines] = await Promise.all([
+    Transaction.find({ 
+      libraryId, 
+      $or: [
+        { issueDate: { $gte: startDate, $lte: endDate } },
+        { returnDate: { $gte: startDate, $lte: endDate } }
+      ]
+    }),
+    Fine.find({
+      libraryId,
+      createdAt: { $gte: startDate, $lte: endDate }
+    })
+  ]);
+
+  // Bucket data
+  days.forEach(day => {
+    const nextDay = new Date(day.date);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    transactions.forEach(t => {
+      if (t.issueDate >= day.date && t.issueDate < nextDay) {
+        day.issues++;
+      }
+      if (t.returnDate && t.returnDate >= day.date && t.returnDate < nextDay) {
+        day.returns++;
+      }
+    });
+
+    fines.forEach(f => {
+      if (f.createdAt >= day.date && f.createdAt < nextDay) {
+        day.fines += f.amount;
+      }
+    });
+  });
+
+  return days.map(d => ({
+    name: d.name,
+    issues: d.issues,
+    returns: d.returns,
+    fines: d.fines
+  }));
 };

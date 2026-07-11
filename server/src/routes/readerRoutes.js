@@ -15,5 +15,6 @@ router.post("/bookmark", checkPermission([PERMISSIONS.RESOURCE_VIEW]), readerCon
 // AI Assistant Endpoints
 router.post("/ai/explain", checkPermission([PERMISSIONS.RESOURCE_VIEW]), readerController.explainConcept);
 router.post("/ai/summarize", checkPermission([PERMISSIONS.RESOURCE_VIEW]), readerController.summarizeChapter);
+router.post("/ai/chat", checkPermission([PERMISSIONS.RESOURCE_VIEW]), readerController.askChat);
 
 module.exports = router;

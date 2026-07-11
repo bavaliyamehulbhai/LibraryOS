@@ -40,7 +40,10 @@ import Users from './pages/users/Users';
 import Members from './pages/members/Members';
 import CreateMember from './pages/members/CreateMember';
 import MemberDetails from './pages/members/MemberDetails';
+import AuditDashboard from './pages/inventory/AuditDashboard';
+import ActiveAudit from './pages/inventory/ActiveAudit';
 import Settings from './pages/settings/Settings';
+import AutomationSettings from './pages/settings/AutomationSettings';
 import ImportCenter from './pages/import-export/ImportCenter';
 import ExportCenter from './pages/import-export/ExportCenter';
 import OnboardingWizard from './pages/onboarding/OnboardingWizard';
@@ -108,6 +111,7 @@ import ExecutiveDashboard from './pages/reports/ExecutiveDashboard';
 // AI Study Assistant
 import StudyAssistant from './pages/ai-study/StudyAssistant';
 
+
 // Knowledge Base
 import HelpCenter from './pages/knowledge/HelpCenter';
 import KnowledgeAdmin from './pages/knowledge/KnowledgeAdmin';
@@ -144,6 +148,10 @@ import IssueDetails from './pages/issues/IssueDetails';
 // Return Pages
 import ReturnBook from './pages/returns/ReturnBook';
 import ReturnHistory from './pages/returns/ReturnHistory';
+
+// Attendance Pages
+import AttendanceKiosk from './pages/attendance/AttendanceKiosk';
+import AttendanceDashboard from './pages/attendance/AttendanceDashboard';
 import ReturnDetails from './pages/returns/ReturnDetails';
 
 // Reservation Pages
@@ -192,8 +200,9 @@ import MemberAnalytics from './pages/analytics/MemberAnalytics';
 import ReadingAnalytics from './pages/analytics/ReadingAnalytics';
 import RiskAnalytics from './pages/analytics/RiskAnalytics';
 
-// Placeholder Pages
+// Subscriptions & Billing
 import Subscriptions from './pages/subscriptions/Subscriptions';
+import Invoices from './pages/billing/Invoices';
 import BrandingSettings from './pages/branding/BrandingSettings';
 import ThemeBuilder from './pages/branding/ThemeBuilder';
 import Tickets from './pages/support/Tickets';
@@ -233,10 +242,8 @@ function App() {
             <Route path="/accept-invite" element={<AcceptInvite />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
 
-            {/* Onboarding Wizard (Protected but outside dashboard layout) */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/onboarding" element={<OnboardingWizard />} />
-            </Route>
+            {/* Onboarding Wizard (Public so new users can create libraries) */}
+            <Route path="/onboarding" element={<OnboardingWizard />} />
 
             {/* Protected Dashboard Routes */}
             <Route element={<ProtectedRoute />}>
@@ -244,7 +251,7 @@ function App() {
                 <Route path="/" element={<RoleBasedRedirect />} />
                 <Route path="/member-dashboard" element={<RoleRoute allowedRoles={['MEMBER', 'STUDENT', 'SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><MemberDashboard /></RoleRoute>} />
                 <Route path="/member/history" element={<RoleRoute allowedRoles={['MEMBER', 'STUDENT']}><MemberHistory /></RoleRoute>} />
-                <Route path="/member/fines" element={<RoleRoute allowedRoles={['MEMBER', 'STUDENT']}><Fines /></RoleRoute>} />
+                <Route path="/member/fines" element={<RoleRoute allowedRoles={['MEMBER', 'STUDENT']}><MemberFines /></RoleRoute>} />
                 <Route path="/member/recommendations" element={<RoleRoute allowedRoles={['MEMBER', 'STUDENT']}><RecommendationDashboard /></RoleRoute>} />
                 <Route path="/member/catalog" element={<RoleRoute allowedRoles={['MEMBER', 'STUDENT']}><MemberCatalog /></RoleRoute>} />
                 <Route path="/member/reservations" element={<RoleRoute allowedRoles={['MEMBER', 'STUDENT']}><MemberReservations /></RoleRoute>} />
@@ -276,6 +283,9 @@ function App() {
                 <Route path="/issues" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><IssueHistory /></RoleRoute>} />
                 <Route path="/issues/new" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><IssueBook /></RoleRoute>} />
                 <Route path="/issues/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><IssueDetails /></RoleRoute>} />
+                
+                <Route path="/attendance/kiosk" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><AttendanceKiosk /></RoleRoute>} />
+                <Route path="/attendance/dashboard" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><AttendanceDashboard /></RoleRoute>} />
                 
                 <Route path="/returns" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ReturnHistory /></RoleRoute>} />
                 <Route path="/returns/new" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ReturnBook /></RoleRoute>} />
@@ -350,12 +360,17 @@ function App() {
 
                 <Route path="/shelves" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ShelfDashboard /></RoleRoute>} />
                 <Route path="/shelves/recommendations" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ShelfRecommendations /></RoleRoute>} />
+                
+                {/* Inventory Audit */}
+                <Route path="/inventory/audit" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><AuditDashboard /></RoleRoute>} />
+                <Route path="/inventory/audit/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ActiveAudit /></RoleRoute>} />
 
                 <Route path="/branch-analytics" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><BranchAnalyticsDashboard /></RoleRoute>} />
                 <Route path="/ai-analytics" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><AIAnalyticsDashboard /></RoleRoute>} />
                 <Route path="/reports/executive" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ExecutiveDashboard /></RoleRoute>} />
 
                 <Route path="/ai/study-assistant" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN', 'ASSISTANT', 'STUDENT', 'MEMBER']}><StudyAssistant /></RoleRoute>} />
+
 
                 {/* Knowledge Base */}
                 <Route path="/help-center" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN', 'ASSISTANT', 'STUDENT', 'MEMBER']}><HelpCenter /></RoleRoute>} />
@@ -366,9 +381,11 @@ function App() {
                 <Route path="/announcements" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><AnnouncementManager /></RoleRoute>} />
 
                 <Route path="/settings" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Settings /></RoleRoute>} />
+                <Route path="/settings/automation" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><AutomationSettings /></RoleRoute>} />
                 <Route path="/import" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><ImportCenter /></RoleRoute>} />
                 <Route path="/export" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><ExportCenter /></RoleRoute>} />
                 <Route path="/subscriptions" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Subscriptions /></RoleRoute>} />
+                <Route path="/invoices" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Invoices /></RoleRoute>} />
                 <Route path="/branding" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><BrandingSettings /></RoleRoute>} />
                 <Route path="/theme-builder" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><ThemeBuilder /></RoleRoute>} />
                 <Route path="/support" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Tickets /></RoleRoute>} />

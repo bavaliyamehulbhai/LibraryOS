@@ -32,7 +32,12 @@ const transactionSchema = new mongoose.Schema({
   },
   issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   returnedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  remarks: { type: String }
+  remarks: { type: String },
+  
+  // Automation Tracking
+  reminderSent3DaysBefore: { type: Boolean, default: false },
+  dueTodaySent: { type: Boolean, default: false },
+  overdueAlertSent: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

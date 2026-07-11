@@ -14,11 +14,11 @@ const { createLibrarySchema } = require("../validators/libraryValidator");
 const authMiddleware = require("../middleware/authMiddleware");
 const authorize = require("../middleware/roleMiddleware");
 
-// All library routes require SUPER_ADMIN access
-router.use(authMiddleware, authorize("SUPER_ADMIN"));
-
-// Create Library Route
+// Public Route for Library Onboarding
 router.post("/", validate(createLibrarySchema), createLibrary);
+
+// All other library routes require SUPER_ADMIN access
+router.use(authMiddleware, authorize("SUPER_ADMIN"));
 
 // Get All Libraries (with pagination, search, filters)
 router.get("/", getLibraries);

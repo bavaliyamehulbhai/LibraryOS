@@ -14,14 +14,14 @@ const createTransporter = async () => {
 
   try {
     // Determine if we should use real credentials from .env or fallback to Ethereal
-    if (process.env.EMAIL_SMTP_HOST && process.env.EMAIL_SMTP_USER) {
+    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
       transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SMTP_HOST,
-        port: process.env.EMAIL_SMTP_PORT || 587,
-        secure: process.env.EMAIL_SMTP_SECURE === "true", // true for 465, false for other ports
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT || 587,
+        secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
         auth: {
-          user: process.env.EMAIL_SMTP_USER,
-          pass: process.env.EMAIL_SMTP_PASS
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
         }
       });
       console.log("[Email] Configured with external SMTP provider.");

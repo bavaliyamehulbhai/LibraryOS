@@ -28,6 +28,16 @@ exports.createArticle = async (req, res) => {
   }
 };
 
+exports.submitFeedback = async (req, res) => {
+  try {
+    const { helpful } = req.body;
+    const article = await knowledgeService.submitFeedback(req.params.id, helpful);
+    res.json({ success: true, data: article });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 exports.getFAQs = async (req, res) => {
   try {
     const faqs = await knowledgeService.getAllFAQs(req.user.libraryId, req.query.q);

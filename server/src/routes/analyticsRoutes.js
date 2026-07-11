@@ -11,7 +11,12 @@ router.get("/dashboard", analyticsController.getDashboard);
 router.get("/books", analyticsController.getBooks);
 router.get("/categories", analyticsController.getCategories);
 router.get("/inventory", analyticsController.getInventory);
+router.get("/reading", analyticsController.getReading);
+router.get("/risk", analyticsController.getRisk);
 router.get("/trends", analyticsController.getTrends);
+router.get("/health", analyticsController.getHealth);
+router.get("/churn", analyticsController.getChurn);
+router.get("/insights", analyticsController.getInsights);
 router.get("/executive-report", analyticsController.getExecutiveReport);
 
 module.exports = router;

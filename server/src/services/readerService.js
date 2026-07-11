@@ -44,3 +44,27 @@ exports.explainConcept = async (selectedText) => {
     return "Failed to explain concept.";
   }
 };
+
+exports.askChat = async (question, contextText) => {
+  if (!process.env.GROQ_API_KEY) {
+    return "AI Chat is currently disabled. Please add a valid GROQ_API_KEY.";
+  }
+
+  try {
+    const prompt = `You are a helpful reading assistant. Answer the user's question based strictly on the provided context (the current page they are reading). If the context doesn't contain the answer, use your general knowledge but mention that it's not explicitly stated in the text.
+
+Context: "${contextText.substring(0, 3000)}"
+
+Question: "${question}"`;
+
+    const response = await client.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: prompt }]
+    });
+
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error("Grok AI Chat Error:", error.message);
+    return "Failed to process chat.";
+  }
+};

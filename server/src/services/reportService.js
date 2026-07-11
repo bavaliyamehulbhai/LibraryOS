@@ -1,5 +1,5 @@
 const Book = require("../models/Book");
-const User = require("../models/User");
+const Member = require("../models/Member");
 const Transaction = require("../models/Transaction");
 const ResearchPaper = require("../models/ResearchPaper");
 const OpenAI = require("openai");
@@ -10,23 +10,34 @@ const client = new OpenAI({
 });
 
 exports.getExecutiveDashboard = async (libraryId) => {
+  let libId;
+  try {
+    const mongoose = require("mongoose");
+    libId = new mongoose.Types.ObjectId(libraryId.toString());
+  } catch (e) {
+    libId = libraryId;
+  }
+
   // Aggregate KPIs
-  const totalBooks = await Book.countDocuments({ libraryId });
-  const totalMembers = await User.countDocuments({ libraryId, role: { $in: ["STUDENT", "MEMBER"] } });
-  const totalTransactions = await Transaction.countDocuments({ libraryId });
-  const totalResearch = await ResearchPaper.countDocuments({ libraryId });
+  const totalBooks = await Book.countDocuments({ libraryId: libId });
+  const totalMembers = await Member.countDocuments({ libraryId: libId, status: { $in: ["ACTIVE", "INACTIVE"] } });
+  const totalTransactions = await Transaction.countDocuments({ libraryId: libId });
+  const totalResearch = await ResearchPaper.countDocuments({ libraryId: libId });
 
   // Books by Category (Top 5)
   const categoryStats = await Book.aggregate([
-    { $match: { libraryId } },
+    { $match: { libraryId: libId, category: { $nin: [null, ""] } } },
     { $group: { _id: "$category", count: { $sum: 1 } } },
+    { $lookup: { from: "categories", localField: "_id", foreignField: "_id", as: "categoryData" } },
+    { $unwind: "$categoryData" },
+    { $project: { _id: "$categoryData.name", count: 1 } },
     { $sort: { count: -1 } },
     { $limit: 5 }
   ]);
 
   // Books issued (Currently out vs Available vs Overdue)
-  const outBooks = await Transaction.countDocuments({ libraryId, status: "ISSUED" });
-  const overdueBooks = await Transaction.countDocuments({ libraryId, status: "OVERDUE" });
+  const outBooks = await Transaction.countDocuments({ libraryId: libId, status: "ISSUED" });
+  const overdueBooks = await Transaction.countDocuments({ libraryId: libId, status: "OVERDUE" });
 
   return {
     kpis: {

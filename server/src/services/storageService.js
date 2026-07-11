@@ -1,25 +1,25 @@
 const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("cloudinary").v2;
+const fs = require("fs");
+const path = require("path");
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const uploadDir = path.join(__dirname, "../../uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "libraryos/digital-resources",
-    allowed_formats: ["pdf", "epub", "docx", "doc", "jpg", "png"], // Cloudinary converts PDFs to images for thumbnails!
-    resource_type: "auto", // Allows PDFs (which are raw/image hybrids in cloudinary)
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
   },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
 });
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit (Cloudinary free tier limit)
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowedMimeTypes = ["application/pdf", "application/epub+zip", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "image/jpeg", "image/png"];
     if (allowedMimeTypes.includes(file.mimetype)) {
@@ -33,6 +33,6 @@ const upload = multer({
 exports.uploadMiddleware = upload.single("file");
 
 exports.getFileUrl = (file) => {
-  // We will return the Cloudinary secure_url
-  return file.secure_url;
+  // We will return the local URL
+  return `/uploads/${file.filename}`;
 };

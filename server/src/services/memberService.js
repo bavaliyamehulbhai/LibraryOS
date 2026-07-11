@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Member = require("../models/Member");
 const Transaction = require("../models/Transaction");
 const Fine = require("../models/Fine");
@@ -124,6 +125,24 @@ exports.verifyMember = async (libraryId, id) => {
 };
 
 exports.getMemberAnalytics = async (libraryId) => {
+  let libId;
+  try {
+    libId = new mongoose.Types.ObjectId(libraryId.toString());
+  } catch (e) {
+    libId = libraryId; // Fallback if it's already a valid query object
+  }
+
+  let typeBreakdown = [];
+  try {
+    typeBreakdown = await Member.aggregate([
+      { $match: { libraryId: libId } },
+      { $group: { _id: "$memberType", value: { $sum: 1 } } },
+      { $project: { name: { $ifNull: ["$_id", "Standard"] }, value: 1, _id: 0 } }
+    ]);
+  } catch (err) {
+    console.error("Aggregation error in member analytics:", err);
+  }
+
   const [total, active, blocked, recent] = await Promise.all([
     Member.countDocuments({ libraryId }),
     Member.countDocuments({ libraryId, status: "ACTIVE" }),
@@ -131,5 +150,7 @@ exports.getMemberAnalytics = async (libraryId) => {
     Member.countDocuments({ libraryId, createdAt: { $gte: new Date(Date.now() - 30*24*60*60*1000) } })
   ]);
   
-  return { total, active, blocked, recent };
+  const inactive = total - active - blocked;
+  
+  return { total, active, blocked, inactive, recent, typeBreakdown };
 };

@@ -93,16 +93,20 @@ const PublicBookDetails = () => {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 pt-12">
-         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col md:flex-row">
+      <div className="max-w-7xl mx-auto px-4 pt-12 relative z-10">
+         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white/20 dark:border-gray-700/50 overflow-hidden flex flex-col md:flex-row relative">
             
+            {/* Ambient Background Glow */}
+            <div className={`absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br ${gradientClass} opacity-20 dark:opacity-10 blur-[100px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none`}></div>
+
             {/* Book Cover */}
-            <div className={`md:w-1/3 p-12 flex justify-center items-center relative bg-gradient-to-br ${gradientClass}`}>
+            <div className={`md:w-1/3 p-8 md:p-12 flex justify-center items-center relative bg-gradient-to-br ${gradientClass} shadow-inner`}>
+               <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
                {book.coverImage && (
                   <img 
                      src={book.coverImage} 
                      alt={book.title} 
-                     className="w-full max-w-sm rounded-lg shadow-2xl relative z-10" 
+                     className="w-full max-w-sm rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative z-10 transform hover:scale-105 transition-transform duration-500 ease-out" 
                      onError={(e) => {
                         e.target.style.display = 'none'; // Hide broken image
                         const fallbackText = document.getElementById('fallback-text');
@@ -110,67 +114,67 @@ const PublicBookDetails = () => {
                      }}
                   />
                )}
-               <div id="fallback-text" className="w-full h-full flex flex-col items-center justify-center p-4 text-center absolute top-0 left-0" style={{ display: book.coverImage ? 'none' : 'flex' }}>
-                  <span className="text-7xl mb-4 shadow-sm drop-shadow-md">📖</span>
-                  <span className="font-extrabold text-white text-3xl drop-shadow-md leading-tight">{book.title}</span>
-                  <span className="font-medium text-white/80 text-xl mt-2 drop-shadow-md">{book.author?.name}</span>
+               <div id="fallback-text" className="w-full h-full flex flex-col items-center justify-center p-6 text-center absolute top-0 left-0 z-10 bg-black/20 backdrop-blur-md" style={{ display: book.coverImage ? 'none' : 'flex' }}>
+                  <span className="text-8xl mb-6 shadow-sm drop-shadow-2xl">📖</span>
+                  <span className="font-extrabold text-white text-4xl drop-shadow-2xl leading-tight tracking-tight">{book.title}</span>
+                  <span className="font-semibold text-white/90 text-2xl mt-4 drop-shadow-xl">{book.author?.name}</span>
                </div>
             </div>
 
             {/* Book Details */}
-            <div className="md:w-2/3 p-10 lg:p-16 flex flex-col">
-               <div className="flex items-center gap-3 mb-4">
-                  <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+            <div className="md:w-2/3 p-10 lg:p-16 flex flex-col relative z-10">
+               <div className="flex flex-wrap items-center gap-3 mb-6">
+                  <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 text-xs font-black px-4 py-2 rounded-xl uppercase tracking-widest border border-indigo-200 dark:border-indigo-800/50">
                      {book.category?.name || "General"}
                   </span>
                   {book.status === 'AVAILABLE' ? (
-                     <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">Available</span>
+                     <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-black px-4 py-2 rounded-xl uppercase tracking-widest border border-emerald-200 dark:border-emerald-800/50 shadow-sm">Available</span>
                   ) : (
-                     <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">Currently Issued</span>
+                     <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-xs font-black px-4 py-2 rounded-xl uppercase tracking-widest border border-amber-200 dark:border-amber-800/50 shadow-sm">Currently Issued</span>
                   )}
                </div>
 
-               <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-white mb-2 leading-tight">
+               <h1 className="text-4xl lg:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 mb-4 leading-tight tracking-tight">
                   {book.title}
                </h1>
-               <h2 className="text-2xl text-gray-600 dark:text-gray-400 mb-8 font-medium">
+               <h2 className="text-2xl lg:text-3xl text-indigo-600 dark:text-indigo-400 mb-8 font-bold">
                   By {book.author?.name || "Unknown Author"}
                </h2>
 
-               <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl">
+               <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-10 max-w-3xl font-medium">
                   {book.description || "No description available for this book. Visit the library to read the physical copy or reserve it online."}
                </p>
 
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                     <span className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ISBN</span>
-                     <span className="font-bold text-gray-900 dark:text-white">{book.isbn}</span>
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                  <div className="bg-white/50 dark:bg-gray-900/30 backdrop-blur-md p-5 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-md transition-shadow">
+                     <span className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">ISBN</span>
+                     <span className="font-bold text-gray-900 dark:text-white text-lg">{book.isbn}</span>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                     <span className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Pages</span>
-                     <span className="font-bold text-gray-900 dark:text-white">{book.pages || "N/A"}</span>
+                  <div className="bg-white/50 dark:bg-gray-900/30 backdrop-blur-md p-5 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-md transition-shadow">
+                     <span className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">Pages</span>
+                     <span className="font-bold text-gray-900 dark:text-white text-lg">{book.pages || "N/A"}</span>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                     <span className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Language</span>
-                     <span className="font-bold text-gray-900 dark:text-white">{book.language || "English"}</span>
+                  <div className="bg-white/50 dark:bg-gray-900/30 backdrop-blur-md p-5 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-md transition-shadow">
+                     <span className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">Language</span>
+                     <span className="font-bold text-gray-900 dark:text-white text-lg">{book.language || "English"}</span>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                     <span className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Branch</span>
-                     <span className="font-bold text-gray-900 dark:text-white truncate" title={book.libraryId?.name}>{book.libraryId?.name || "Main Library"}</span>
+                  <div className="bg-white/50 dark:bg-gray-900/30 backdrop-blur-md p-5 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 hover:shadow-md transition-shadow">
+                     <span className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">Branch</span>
+                     <span className="font-bold text-gray-900 dark:text-white text-base block truncate" title={book.libraryId?.name}>{book.libraryId?.name || "Main Library"}</span>
                   </div>
                </div>
 
-               <div className="mt-auto flex gap-4">
+               <div className="mt-auto flex flex-col sm:flex-row gap-4 relative z-[100]">
                   <button 
                      onClick={handleReserve}
-                     disabled={book.status !== 'AVAILABLE'}
-                     className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all text-lg flex items-center justify-center min-w-[200px]"
+                     disabled={book.status === 'LOST' || book.status === 'MAINTENANCE'}
+                     className="relative z-[100] px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/30 transition-all text-lg flex items-center justify-center min-w-[240px] transform hover:-translate-y-1 cursor-pointer"
                   >
-                     {book.status === 'AVAILABLE' ? "Reserve Book" : "Not Available"}
+                     {book.status === 'AVAILABLE' ? "Reserve (Hold Request)" : book.status === 'ISSUED' ? "Join Waitlist" : "Not Available"}
                   </button>
                   <Link 
                      to="/portal"
-                     className="px-8 py-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 font-bold rounded-xl transition-all text-lg text-center"
+                     className="relative z-[100] px-10 py-4 bg-white/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-600 font-bold rounded-2xl transition-all text-lg flex justify-center items-center backdrop-blur-sm cursor-pointer"
                   >
                      Keep Browsing
                   </Link>

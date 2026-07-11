@@ -12,5 +12,8 @@ router.get("/stats", dashboardController.getBorrowStats);
 router.get("/fines", dashboardController.getFinesHistory);
 router.get("/reservations", dashboardController.getMyReservations);
 router.post("/reservations", dashboardController.reserveBook);
+router.put("/reservations/:id/cancel", dashboardController.cancelMyReservation);
+router.post("/fines/pay", dashboardController.payFines);
+router.put("/renew/:transactionId", dashboardController.renewBook);
 
 module.exports = router;

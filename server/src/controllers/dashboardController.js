@@ -8,12 +8,13 @@ const Inventory = require("../models/Inventory");
 exports.getDashboardMaster = async (req, res) => {
   try {
     const libraryId = req.user.libraryId;
+    const days = req.query.days ? parseInt(req.query.days) : 30;
 
     // 1. KPI Stats
     const stats = await analyticsService.getDashboardAnalytics(libraryId);
 
     // 2. Charts (Issues Trend & Categories)
-    const trends = await analyticsService.getTrendAnalytics(libraryId);
+    const trends = await analyticsService.getTrendAnalytics(libraryId, days);
     const categories = await analyticsService.getCategoryAnalytics(libraryId);
 
     // 3. Alerts (Low Stock, Security, Pending Imports)

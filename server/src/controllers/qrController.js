@@ -60,3 +60,26 @@ exports.getStats = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.selfCheckout = async (req, res) => {
+  try {
+    const { copyCode } = req.body;
+    const transaction = await qrService.selfCheckout(copyCode, req.user.libraryId, req.user._id);
+    res.status(200).json({ success: true, message: "Book successfully checked out to you!", data: transaction });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.selfReturn = async (req, res) => {
+  try {
+    const { copyCode } = req.body;
+    const transaction = await qrService.selfReturn(copyCode, req.user.libraryId, req.user._id);
+    const message = transaction.fineAmount > 0 
+      ? `Book returned. A late fine of ${transaction.fineAmount} was added to your account.`
+      : "Book successfully returned!";
+    res.status(200).json({ success: true, message, data: transaction });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};

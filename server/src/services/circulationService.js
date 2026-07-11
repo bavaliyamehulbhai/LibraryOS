@@ -53,6 +53,24 @@ exports.issueBook = async (libraryId, memberId, bookCopyId, issuedBy) => {
   member.activeCheckouts += 1;
   await member.save();
 
+  // Track for AI Recommendations
+  const UserReadingProfile = require("../models/UserReadingProfile");
+  const bookDetails = await Book.findById(copy.bookId._id || copy.bookId);
+  if (bookDetails) {
+    await UserReadingProfile.findOneAndUpdate(
+      { libraryId, memberId },
+      {
+        $addToSet: { 
+          categories: { $each: bookDetails.categories || [] },
+          favoriteAuthors: bookDetails.author
+        },
+        $inc: { totalBooksRead: 1 },
+        $set: { lastUpdated: new Date() }
+      },
+      { upsert: true, new: true }
+    );
+  }
+
   return transaction.populate ? await Transaction.findById(transaction._id)
     .populate('memberId', 'firstName lastName memberCode')
     .populate('bookId', 'title isbn')

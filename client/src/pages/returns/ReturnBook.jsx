@@ -40,7 +40,7 @@ const ReturnBook = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-[#0f1117] dark:to-gray-900 min-h-screen">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
@@ -49,7 +49,7 @@ const ReturnBook = () => {
           <p className="text-gray-500 mt-2 dark:text-gray-400">Scan book barcode to automatically calculate fines and process returns.</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+        <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800/80 rounded-3xl shadow-xl border border-white/50 dark:border-gray-700/50 p-8">
           <form onSubmit={handleReturn}>
             
             <div className="mb-8 border-b pb-8 dark:border-gray-700">
@@ -62,7 +62,7 @@ const ReturnBook = () => {
                   placeholder="Scan or type barcode here..." 
                   value={copyBarcode}
                   onChange={(e) => setCopyBarcode(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono tracking-widest transition"
+                  className="w-full pl-12 pr-4 py-4 text-lg border border-white/50 dark:border-gray-700/50 rounded-2xl bg-white/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-mono tracking-widest shadow-inner transition-all hover:shadow-md"
                   required
                   autoFocus
                 />
@@ -81,20 +81,20 @@ const ReturnBook = () => {
                 2. Return Condition
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition ${condition === 'GOOD' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                <label className={`cursor-pointer border rounded-2xl p-4 flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-1 ${condition === 'GOOD' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 shadow-lg shadow-green-500/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:shadow-md'}`}>
                   <input type="radio" name="condition" value="GOOD" checked={condition === 'GOOD'} onChange={(e) => setCondition(e.target.value)} className="hidden" />
                   <span className="text-3xl mb-2">👍</span>
                   <span className="font-bold">Good Condition</span>
                 </label>
 
-                <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition ${condition === 'DAMAGED' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                <label className={`cursor-pointer border rounded-2xl p-4 flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-1 ${condition === 'DAMAGED' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 shadow-lg shadow-yellow-500/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:shadow-md'}`}>
                   <input type="radio" name="condition" value="DAMAGED" checked={condition === 'DAMAGED'} onChange={(e) => setCondition(e.target.value)} className="hidden" />
                   <span className="text-3xl mb-2">🤕</span>
                   <span className="font-bold">Damaged</span>
                   <span className="text-xs mt-1">Applies ₹200 Penalty</span>
                 </label>
 
-                <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition ${condition === 'LOST' ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                <label className={`cursor-pointer border rounded-2xl p-4 flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-1 ${condition === 'LOST' ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 shadow-lg shadow-red-500/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 hover:shadow-md'}`}>
                   <input type="radio" name="condition" value="LOST" checked={condition === 'LOST'} onChange={(e) => setCondition(e.target.value)} className="hidden" />
                   <span className="text-3xl mb-2">❓</span>
                   <span className="font-bold">Lost Book</span>
@@ -107,7 +107,7 @@ const ReturnBook = () => {
               <button 
                 type="submit" 
                 disabled={returnLoading || !copyBarcode}
-                className="px-8 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:opacity-50 shadow-md flex items-center"
+                className="px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:grayscale shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center"
               >
                 {returnLoading ? (
                   <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div> Processing Return...</>

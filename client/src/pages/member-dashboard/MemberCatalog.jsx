@@ -7,15 +7,27 @@ const MemberCatalog = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [reservedBookIds, setReservedBookIds] = useState(new Set());
 
   const fetchBooks = async (searchQuery = '') => {
     try {
       if (searchQuery) setSearching(true);
       else setLoading(true);
       
-      const res = await api.get(`/v1/books${searchQuery ? `?search=${searchQuery}` : ''}`);
-      if (res.data.success) {
-        setBooks(res.data.data.books || res.data.data || []);
+      const [booksRes, resvRes] = await Promise.all([
+        api.get(`/v1/books${searchQuery ? `?search=${searchQuery}` : ''}`),
+        api.get('/v1/member-dashboard/reservations').catch(() => ({ data: { data: [] } }))
+      ]);
+
+      if (booksRes.data.success) {
+        setBooks(booksRes.data.data.books || booksRes.data.data || []);
+      }
+      
+      if (resvRes.data && resvRes.data.success) {
+        // Collect active reservations
+        const activeRes = resvRes.data.data.filter(r => r.status === 'PENDING' || r.status === 'READY');
+        const ids = new Set(activeRes.map(r => r.bookId._id || r.bookId));
+        setReservedBookIds(ids);
       }
     } catch (error) {
       console.error("Catalog error:", error);
@@ -40,6 +52,11 @@ const MemberCatalog = () => {
       const res = await api.post('/v1/member-dashboard/reservations', { bookId });
       if (res.data.success) {
         toast.success('Book reserved successfully!');
+        setReservedBookIds(prev => {
+          const next = new Set(prev);
+          next.add(bookId);
+          return next;
+        });
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to reserve book');
@@ -55,31 +72,34 @@ const MemberCatalog = () => {
   }
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-[#0f1117] dark:to-gray-900 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header & Search */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-              <span className="mr-3">🔍</span> Search Catalog
+            <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white flex items-center tracking-tight">
+              Search <span className="text-blue-600 ml-2">Catalog</span>
             </h1>
-            <p className="text-gray-500 mt-1 dark:text-gray-400">Discover new books in the library.</p>
+            <p className="text-gray-500 mt-2 text-lg dark:text-gray-400">Discover new books in the library network.</p>
           </div>
-          <form onSubmit={handleSearch} className="flex-1 max-w-lg w-full relative">
-            <input 
-              type="text" 
-              placeholder="Search books, authors, or categories..." 
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-            />
-            <div className="absolute left-4 top-3.5 text-gray-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <form onSubmit={handleSearch} className="flex-1 max-w-xl w-full relative group">
+            <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+            <div className="relative flex items-center bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/20 transition-all shadow-sm">
+              <span className="pl-4 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </span>
+              <input 
+                type="text" 
+                placeholder="Search books, authors, or categories..." 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full pl-3 pr-4 py-4 bg-transparent outline-none text-gray-900 dark:text-white placeholder-gray-400 font-medium"
+              />
+              <button type="submit" className="mr-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold uppercase tracking-wider transition-all disabled:opacity-50" disabled={searching}>
+                {searching ? '...' : 'Search'}
+              </button>
             </div>
-            <button type="submit" className="absolute right-2 top-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50" disabled={searching}>
-              {searching ? '...' : 'Search'}
-            </button>
           </form>
         </div>
 
@@ -93,39 +113,56 @@ const MemberCatalog = () => {
             </div>
           ) : (
             books.map(book => (
-              <div key={book._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col hover:shadow-md transition">
-                <div className="h-48 bg-gray-100 dark:bg-gray-700 relative flex justify-center">
-                  {book.coverImage ? (
-                    <img src={book.coverImage} alt={book.title} className="h-full object-cover w-full" />
-                  ) : (
-                    <div className="flex items-center justify-center w-full h-full text-gray-400">
-                      <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                    </div>
+              <div key={book._id} className="bg-white/80 backdrop-blur-xl dark:bg-gray-800/80 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/40 border border-white/50 dark:border-gray-700/50 overflow-hidden flex flex-col hover:shadow-2xl hover:shadow-blue-900/10 dark:hover:shadow-black/60 hover:-translate-y-2 transition-all duration-500 group">
+                <div className="h-56 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700/50 relative flex justify-center items-center overflow-hidden border-b border-white/50 dark:border-gray-700/50">
+                  <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-gray-600">
+                     <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                     </svg>
+                  </div>
+                  {book.coverImage && (
+                    <img 
+                       src={book.coverImage} 
+                       alt={book.title} 
+                       className="h-full w-full object-cover relative z-10 group-hover:scale-105 transition-transform duration-500" 
+                       onError={(e) => { e.target.style.display = 'none'; }}
+                    />
                   )}
                   {/* Status Badge */}
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-3 right-3 z-20">
                     {book.totalCopies > book.issuedCopies ? (
-                      <span className="px-2.5 py-1 bg-green-500 text-white text-xs font-bold rounded shadow-sm">Available</span>
+                      <span className="px-3 py-1 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-sm">Available</span>
                     ) : (
-                      <span className="px-2.5 py-1 bg-gray-800 text-gray-100 text-xs font-bold rounded shadow-sm">Issued Out</span>
+                      <span className="px-3 py-1 bg-gray-900/90 backdrop-blur-md text-gray-100 text-[10px] font-black uppercase tracking-widest rounded-md shadow-sm">Issued Out</span>
                     )}
                   </div>
                 </div>
-                <div className="p-5 flex-1 flex flex-col">
-                  <h3 className="font-bold text-gray-900 dark:text-white text-lg leading-tight mb-1 line-clamp-2">{book.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">By {book.author?.name || 'Unknown Author'}</p>
+                <div className="p-6 flex-1 flex flex-col">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-xl leading-tight mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">{book.title}</h3>
+                  <p className="text-blue-600 dark:text-blue-400 font-medium text-sm mb-4">By {book.author?.name || 'Unknown Author'}</p>
                   
-                  <div className="mt-auto space-y-2">
-                    <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 p-2 rounded">
-                      <span>Category: {book.category?.name || 'N/A'}</span>
-                      <span>Copies: {book.totalCopies - (book.issuedCopies || 0)} / {book.totalCopies}</span>
+                  <div className="mt-auto space-y-4">
+                    <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
+                      <div>
+                         <span className="block text-[10px] uppercase font-bold tracking-widest mb-0.5 opacity-70">Category</span>
+                         <span className="font-medium text-gray-900 dark:text-gray-300">{book.category?.name || 'N/A'}</span>
+                      </div>
+                      <div className="text-right">
+                         <span className="block text-[10px] uppercase font-bold tracking-widest mb-0.5 opacity-70">Copies</span>
+                         <span className="font-medium text-gray-900 dark:text-gray-300">{book.totalCopies - (book.issuedCopies || 0)} / {book.totalCopies}</span>
+                      </div>
                     </div>
                     
                     <button 
                       onClick={() => handleReserve(book._id)}
-                      className="w-full py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
+                      disabled={reservedBookIds.has(book._id)}
+                      className={`w-full py-3 font-bold uppercase tracking-wider text-xs rounded-2xl shadow-sm transition-all duration-300 ${
+                        reservedBookIds.has(book._id)
+                          ? 'bg-gray-200/80 text-gray-500 dark:bg-gray-700/50 dark:text-gray-400 cursor-not-allowed shadow-none'
+                          : 'bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-600 dark:hover:text-white hover:shadow-lg hover:shadow-blue-500/30'
+                      }`}
                     >
-                      Reserve Book
+                      {reservedBookIds.has(book._id) ? 'Already Reserved' : 'Reserve Book'}
                     </button>
                   </div>
                 </div>

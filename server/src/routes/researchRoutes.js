@@ -12,5 +12,6 @@ router.get("/", checkPermission([PERMISSIONS.RESEARCH_VIEW]), researchController
 router.get("/:id", checkPermission([PERMISSIONS.RESEARCH_VIEW]), researchController.getResearchById);
 router.get("/:id/ai-summary", checkPermission([PERMISSIONS.RESEARCH_VIEW]), researchController.getAiSummary);
 router.post("/:id/citation", checkPermission([PERMISSIONS.RESEARCH_VIEW]), researchController.generateCitation);
+router.delete("/:id", checkPermission([PERMISSIONS.RESEARCH_DELETE]), researchController.deleteResearch);
 
 module.exports = router;

@@ -5,7 +5,10 @@ const { generateBranchCode } = require("../utils/generateBranchCode");
 const createBranch = async (req, res) => {
   try {
     // Allow SUPER_ADMIN to pass a libraryId explicitly during onboarding
-    const libraryId = req.body.libraryId || req.user.libraryId;
+    const libraryId = req.body.libraryId || (req.user ? req.user.libraryId : null);
+    if (!libraryId) {
+       return res.status(400).json({ success: false, message: "Library ID is required" });
+    }
     console.log("Creating branch for libraryId:", libraryId);
 
     // Need to get organizationId
@@ -55,7 +58,7 @@ const createBranch = async (req, res) => {
     await AuditLog.create({
       action: "CREATE_BRANCH",
       entity: "BRANCH",
-      userId: req.user._id,
+      userId: req.user ? req.user._id : (org ? org.ownerId : null),
       libraryId,
       details: `Created branch ${branch.branchName}`
     });
@@ -73,20 +76,26 @@ const createBranch = async (req, res) => {
 
 const getBranches = async (req, res) => {
   try {
-    const libraryId = req.user.libraryId;
+    const libraryId = req.user.role === 'SUPER_ADMIN' ? null : req.user.libraryId;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const { search, status, city, sort } = req.query;
 
-    const filter = { libraryId }; // Isolation
+    const filter = {};
+    if (libraryId) filter.libraryId = libraryId;
 
     if (search) {
-      filter.name = { $regex: search, $options: "i" };
+      filter.$or = [
+        { branchName: { $regex: search, $options: "i" } },
+        { branchCode: { $regex: search, $options: "i" } }
+      ];
     }
-    if (status) {
+    if (status && status !== 'ALL') {
       filter.status = status;
+    } else if (status !== 'ALL') {
+      filter.status = "ACTIVE";
     }
     if (city) {
       filter.city = city;
@@ -113,7 +122,7 @@ const getBranches = async (req, res) => {
 
 const getBranchById = async (req, res) => {
   try {
-    const libraryId = req.user.libraryId;
+    const libraryId = req.user.role === 'SUPER_ADMIN' ? null : req.user.libraryId;
     const branch = await branchService.getBranchById(req.params.id, libraryId);
     
     if (!branch) {
@@ -128,7 +137,7 @@ const getBranchById = async (req, res) => {
 
 const updateBranch = async (req, res) => {
   try {
-    const libraryId = req.user.libraryId;
+    const libraryId = req.user.role === 'SUPER_ADMIN' ? null : req.user.libraryId;
     const allowedUpdates = ["name", "phone", "address", "city", "state", "managerId", "email"];
     const updateData = {};
     
@@ -163,7 +172,7 @@ const updateBranch = async (req, res) => {
 
 const deleteBranch = async (req, res) => {
   try {
-    const libraryId = req.user.libraryId;
+    const libraryId = req.user.role === 'SUPER_ADMIN' ? null : req.user.libraryId;
     const branch = await branchService.deleteBranch(req.params.id, libraryId);
     
     if (!branch) {
@@ -186,7 +195,7 @@ const deleteBranch = async (req, res) => {
 
 const restoreBranch = async (req, res) => {
   try {
-    const libraryId = req.user.libraryId;
+    const libraryId = req.user.role === 'SUPER_ADMIN' ? null : req.user.libraryId;
     const branch = await branchService.restoreBranch(req.params.id, libraryId);
     
     if (!branch) {
@@ -209,7 +218,7 @@ const restoreBranch = async (req, res) => {
 
 const getBranchDashboard = async (req, res) => {
   try {
-    const libraryId = req.user.libraryId;
+    const libraryId = req.user.role === 'SUPER_ADMIN' ? null : req.user.libraryId;
     const dashboard = await branchService.getBranchDashboard(req.params.id, libraryId);
     return res.json({ success: true, data: dashboard });
   } catch (error) {

@@ -14,7 +14,7 @@ const createLibrary = async (req, res) => {
     const library = await libraryService.createLibrary({
       ...req.body,
       code,
-      createdBy: req.user._id
+      createdBy: req.user ? req.user._id : null
     });
 
     return res.status(201).json({
@@ -104,7 +104,7 @@ const getLibraryById = async (req, res) => {
 
 const updateLibrary = async (req, res) => {
   try {
-    const allowedUpdates = ["name", "phone", "address", "city", "state", "logo", "website"];
+    const allowedUpdates = ["name", "phone", "address", "city", "state", "logo", "website", "status"];
     const updateData = {};
     
     Object.keys(req.body).forEach(key => {
@@ -112,6 +112,12 @@ const updateLibrary = async (req, res) => {
         updateData[key] = req.body[key];
       }
     });
+    
+    if (req.body.status) {
+      updateData.status = req.body.status;
+    }
+    
+    console.log("Updating Library ID:", req.params.id, "with data:", updateData);
 
     const library = await libraryService.updateLibrary(req.params.id, updateData);
     if (!library) {

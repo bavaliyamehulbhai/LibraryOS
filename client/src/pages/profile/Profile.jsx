@@ -1,9 +1,34 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import api from '../../services/api';
+import toast from 'react-hot-toast';
 
 const Profile = () => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '' });
+  const [saving, setSaving] = useState(false);
+
+  const startEditing = () => {
+    setFormData({ name: user?.name || user?.firstName + ' ' + user?.lastName || '', email: user?.email || '' });
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await api.put('/v1/auth/profile', formData);
+      if (res.data.success) {
+        toast.success("Profile updated successfully!");
+        setIsEditing(false);
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
   
   return (
     <div className="p-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors">
@@ -26,7 +51,7 @@ const Profile = () => {
                 <p className="text-gray-500 dark:text-gray-400">{user?.role || (user?.roleId?.name) || 'Super Admin'}</p>
               </div>
               <button 
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={isEditing ? () => setIsEditing(false) : startEditing}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg text-sm font-medium transition-colors"
               >
                 {isEditing ? 'Cancel' : 'Edit Profile'}
@@ -42,16 +67,26 @@ const Profile = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Full Name</label>
                       {isEditing ? (
-                        <input type="text" className="w-full px-4 py-2 border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none" defaultValue={user?.name || 'Admin User'} />
+                        <input 
+                          type="text" 
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          className="w-full px-4 py-2 border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" 
+                        />
                       ) : (
-                        <p className="text-gray-900 dark:text-white font-medium">{user?.name || 'Admin User'}</p>
+                        <p className="text-gray-900 dark:text-white font-medium">{user?.name || user?.firstName + ' ' + user?.lastName || 'Admin User'}</p>
                       )}
                     </div>
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Email Address</label>
                       {isEditing ? (
-                        <input type="email" className="w-full px-4 py-2 border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none" defaultValue={user?.email || 'admin@libraryos.com'} />
+                        <input 
+                          type="email" 
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          className="w-full px-4 py-2 border rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" 
+                        />
                       ) : (
                         <p className="text-gray-900 dark:text-white font-medium">{user?.email || 'admin@libraryos.com'}</p>
                       )}
@@ -88,10 +123,11 @@ const Profile = () => {
             {isEditing && (
               <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
                 <button 
-                  onClick={() => setIsEditing(false)}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-md transition-colors"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-bold shadow-md transition-all disabled:opacity-50"
                 >
-                  Save Changes
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             )}

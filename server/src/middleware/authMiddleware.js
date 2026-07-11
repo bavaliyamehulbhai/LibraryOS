@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
  try {
   const authHeader = req.headers.authorization;
 
@@ -15,6 +16,12 @@ const authMiddleware = (req, res, next) => {
   decoded.id = decoded.id || decoded._id;
   decoded._id = decoded._id || decoded.id;
   
+  // Real-time Database Verification (Ghost User Protection)
+  const user = await User.findById(decoded.id).select('isActive');
+  if (!user || !user.isActive) {
+    return res.status(401).json({ success: false, message: "Unauthorized. Account disabled or deleted." });
+  }
+
   req.user = decoded;
   next();
 

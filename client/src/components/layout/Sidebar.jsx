@@ -25,7 +25,7 @@ const SidebarDropdown = ({ item, collapsed, userRole, hasFeature }) => {
     <li className="mb-1">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-4 py-3 mx-2 rounded-md transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white ${isActive ? 'bg-indigo-50/50 text-indigo-700 dark:bg-indigo-900/20' : ''}`}
+        className={`w-full flex items-center justify-between px-4 py-3 mx-2 rounded-xl transition-all duration-300 text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-gray-200 font-medium ${isActive ? 'bg-indigo-50/50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300' : ''}`}
       >
         <div className="flex items-center">
           <span className="text-xl">{item.icon}</span>
@@ -42,7 +42,7 @@ const SidebarDropdown = ({ item, collapsed, userRole, hasFeature }) => {
               <NavLink 
                 to={child.path} 
                 className={({ isActive }) => 
-                  `block px-4 py-2 mx-2 rounded-md transition-all duration-200 text-sm ${isActive ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-600 dark:text-white font-medium hover:translate-x-1' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white hover:translate-x-1'}`
+                  `block px-4 py-2 mx-2 rounded-lg transition-all duration-300 text-sm ${isActive ? 'bg-indigo-50/80 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 dark:border dark:border-indigo-500/20 font-bold hover:translate-x-1 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200 hover:translate-x-1'}`
                 }
               >
                 {child.name}
@@ -62,7 +62,7 @@ const Sidebar = () => {
 
   const menuItems = [
     // --- Dashboards ---
-    { name: "Circulation Dashboard", path: "/dashboard", icon: "📊", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+    { name: "Dashboard", path: "/dashboard", icon: "📊", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
     { name: "My Dashboard", path: "/member-dashboard", icon: "🏠", roles: ["MEMBER", "STUDENT"] },
 
     // --- Catalog & Content ---
@@ -76,6 +76,7 @@ const Sidebar = () => {
         { name: "Digital Library", path: "/digital-library", icon: "📱", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "MEMBER", "STUDENT"] },
         { name: "My Digital Content", path: "/digital-library/my-library", icon: "🗂️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "MEMBER", "STUDENT"] },
         { name: "Physical Shelves", path: "/shelves", icon: "📚", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
+        { name: "Inventory Audit", path: "/inventory/audit", icon: "📋", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
         { name: "Research Repository", path: "/repository", icon: "🔬", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "MEMBER", "STUDENT"] }
       ]
     },
@@ -123,6 +124,17 @@ const Sidebar = () => {
       ]
     },
 
+    // --- Library Operations ---
+    {
+      name: "Operations",
+      icon: "🏢",
+      roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"],
+      children: [
+        { name: "Attendance Dashboard", path: "/attendance/dashboard", icon: "👥", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
+        { name: "Kiosk Mode", path: "/attendance/kiosk", icon: "🏛️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] }
+      ]
+    },
+
     // --- Administration ---
     {
       name: "Administration",
@@ -146,17 +158,11 @@ const Sidebar = () => {
       icon: "📊",
       roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"],
       children: [
-        { name: "Executive Reports", path: "/reports/executive", icon: "📈", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
-        { name: "Exec Reports", path: "/analytics/reports", icon: "📄", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "ADVANCED_ANALYTICS" },
-        { name: "AI Analytics", path: "/ai-analytics", icon: "🧠", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
-        { name: "Analytics (BI)", path: "/analytics", icon: "📊", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "ADVANCED_ANALYTICS" },
-        { name: "Member Analytics", path: "/analytics/members", icon: "👥", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "ADVANCED_ANALYTICS" },
-        { name: "Risk Analytics", path: "/analytics/risk", icon: "⚠️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "ADVANCED_ANALYTICS" },
-        { name: "Reading Analytics", path: "/analytics/reading", icon: "📖", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "ADVANCED_ANALYTICS" },
-        { name: "Reading Dashboard", path: "/reading-analytics/dashboard", icon: "📈", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
-        { name: "Reader Leaderboard", path: "/reading-analytics/leaderboard", icon: "🏆", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
-        { name: "Search Analytics", path: "/search/analytics", icon: "📊", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
-        { name: "Global Analytics", path: "/global-analytics", icon: "🌍", roles: ["SUPER_ADMIN"] }
+        { name: "Analytics (BI)", path: "/analytics", icon: "📊", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Member Analytics", path: "/analytics/members", icon: "👥", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Reading Trends", path: "/analytics/reading", icon: "📖", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
+        { name: "Risk & Defaulters", path: "/analytics/risk", icon: "⚠️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
+        { name: "Executive Reports", path: "/reports/executive", icon: "📈", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] }
       ]
     },
 
@@ -180,15 +186,12 @@ const Sidebar = () => {
       icon: "⚙️",
       roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"],
       children: [
-        { name: "Emails", path: "/emails/dashboard", icon: "📧", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "EMAIL_INTEGRATION" },
-        { name: "Email Logs", path: "/emails/logs", icon: "📋", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
-        { name: "Email Templates", path: "/emails/templates", icon: "🎨", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
-        { name: "Notif. Templates", path: "/notifications/templates", icon: "📝", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
-        { name: "Resource Usage", path: "/usage", icon: "📈", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "General Settings", path: "/settings", icon: "⚙️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Automation Rules", path: "/settings/automation", icon: "🤖", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Email Config", path: "/emails/dashboard", icon: "📧", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "EMAIL_INTEGRATION" },
         { name: "White Label", path: "/branding", icon: "🎨", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "WHITE_LABEL" },
         { name: "Theme Builder", path: "/theme-builder", icon: "🖌️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "WHITE_LABEL" },
-        { name: "Public Portal", path: "/portal", icon: "🌍", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
-        { name: "General Settings", path: "/settings", icon: "⚙️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] }
+        { name: "Public Portal", path: "/portal", icon: "🌍", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] }
       ]
     }
   ];
@@ -204,7 +207,7 @@ const Sidebar = () => {
   });
 
   return (
-    <div className={`flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 z-20 relative ${collapsed ? 'w-20' : 'w-64'}`}>
+    <div className={`hidden md:flex flex-col h-screen bg-white dark:bg-[#0f1117] border-r border-gray-200 dark:border-gray-800/60 transition-all duration-300 z-20 relative ${collapsed ? 'w-20' : 'w-64'}`}>
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
         {!collapsed && (
           <div className="flex items-center font-bold text-xl truncate text-gray-900 dark:text-white">
@@ -238,7 +241,7 @@ const Sidebar = () => {
                 <NavLink 
                   to={item.path} 
                   className={({ isActive }) => 
-                    `flex items-center px-4 py-3 mx-2 rounded-md transition-all duration-200 ${isActive ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-600 dark:text-white font-medium shadow-sm hover:translate-x-1' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white hover:translate-x-1'}`
+                    `flex items-center px-4 py-3 mx-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 dark:from-indigo-500/20 dark:to-blue-500/10 dark:text-indigo-400 dark:border dark:border-indigo-500/20 font-bold shadow-sm hover:translate-x-1' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200 hover:translate-x-1 font-medium'}`
                   }
                 >
                   <span className="text-xl">{item.icon}</span>
@@ -252,7 +255,7 @@ const Sidebar = () => {
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-transparent">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm">
+          <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm shrink-0">
             {user?.name?.charAt(0) || "U"}
           </div>
           {!collapsed && (

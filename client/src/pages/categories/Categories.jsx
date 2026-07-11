@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useCategories, useDeleteCategory } from "../../hooks/useCategories";
 import { Plus, Search, Edit, Trash2, Eye, FolderTree } from "lucide-react";
 import toast from "react-hot-toast";
+import { confirmAlert } from "../../utils/confirmAlert";
 import { format } from "date-fns";
 
 const Categories = () => {
@@ -11,8 +12,8 @@ const Categories = () => {
   const { data, isLoading, isError } = useCategories({ search, page, limit: 10 });
   const { mutate: deleteCategory } = useDeleteCategory();
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this category?")) {
+  const handleDelete = async (id) => {
+    if (await confirmAlert("Are you sure you want to delete this category?")) {
       deleteCategory(id, {
         onSuccess: () => toast.success("Category deleted successfully"),
         onError: () => toast.error("Failed to delete category")

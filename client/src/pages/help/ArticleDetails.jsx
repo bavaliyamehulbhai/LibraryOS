@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { ArrowLeft, ThumbsUp, ThumbsDown, Clock, Eye, Hash } from 'lucide-react';
 
 const ArticleDetails = () => {
-  const { slug } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   
   const [article, setArticle] = useState(null);
@@ -15,12 +15,12 @@ const ArticleDetails = () => {
 
   useEffect(() => {
     fetchArticle();
-  }, [slug]);
+  }, [id]);
 
   const fetchArticle = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/help/articles/${slug}`);
+      const res = await api.get(`/v1/knowledge/articles/${id}`);
       if (res.data.success) {
         setArticle(res.data.data);
         setStats(res.data.data.stats);
@@ -35,7 +35,7 @@ const ArticleDetails = () => {
 
   const handleFeedback = async (isHelpful) => {
     try {
-      const res = await api.post(`/help/articles/${article._id}/feedback`, { helpful: isHelpful });
+      const res = await api.post(`/v1/knowledge/articles/${id}/feedback`, { helpful: isHelpful });
       if (res.data.success) {
         setFeedbackSubmitted(true);
         toast.success("Thank you for your feedback!");
@@ -51,37 +51,38 @@ const ArticleDetails = () => {
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-12">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 pt-8 pb-12 px-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Link to="/help" className="inline-flex items-center text-indigo-600 hover:text-indigo-700 font-medium">
+      <div className="bg-gradient-to-br from-indigo-600 to-purple-700 pt-12 pb-24 px-6 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-700 -mr-20 -mt-20"></div>
+        <div className="max-w-4xl mx-auto space-y-6 relative z-10">
+          <Link to="/help-center" className="inline-flex items-center text-indigo-100 hover:text-white font-bold bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm transition-all hover:bg-white/20">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Help Center
           </Link>
           
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-              {article.categoryId?.name}
+          <div className="flex items-center gap-3 text-sm text-indigo-100 font-medium">
+            <span className="bg-white/20 px-3 py-1 rounded-md uppercase tracking-wider text-[10px] font-bold">
+              {article.category || 'General'}
             </span>
             <span>•</span>
-            <span className="flex items-center"><Clock className="w-4 h-4 mr-1" /> {new Date(article.updatedAt).toLocaleDateString()}</span>
+            <span className="flex items-center"><Clock className="w-4 h-4 mr-1" /> {new Date(article.createdAt).toLocaleDateString()}</span>
             <span>•</span>
-            <span className="flex items-center"><Eye className="w-4 h-4 mr-1" /> {article.views} views</span>
+            <span className="flex items-center bg-indigo-500/50 px-2 py-0.5 rounded-full"><Eye className="w-4 h-4 mr-1" /> {article.views} views</span>
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white leading-tight">
+          <h1 className="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-sm">
             {article.title}
           </h1>
           
           {article.summary && (
-            <p className="text-xl text-gray-500 dark:text-gray-400">
+            <p className="text-xl text-indigo-100 font-medium">
               {article.summary}
             </p>
           )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 md:p-12">
+      <div className="max-w-4xl mx-auto px-6 -mt-12 relative z-20">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-8 md:p-12">
           
           {/* Content (Assuming Markdown or plain text rendered with line breaks) */}
           <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 text-lg whitespace-pre-wrap font-sans leading-relaxed">

@@ -69,7 +69,7 @@ const RenewBook = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-[#0f1117] dark:to-gray-900 min-h-screen">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -78,54 +78,57 @@ const RenewBook = () => {
             </h1>
             <p className="text-gray-500 mt-2 dark:text-gray-400">Extend the borrowing period for active checkouts.</p>
           </div>
-          <button onClick={() => navigate('/renewals/history')} className="text-blue-600 hover:underline dark:text-blue-400">
+          <button onClick={() => navigate('/renewals/history')} className="px-6 py-3 bg-white/80 dark:bg-gray-800 backdrop-blur-md text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-gray-700 rounded-xl font-bold shadow-sm hover:shadow-md hover:bg-blue-50 dark:hover:bg-gray-700 transition-all hover:-translate-y-0.5">
             View Renewal History
           </button>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-8">
+        <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800 rounded-3xl shadow-lg border border-white/50 dark:border-gray-700 p-8 mb-8 relative z-10">
           <form onSubmit={handleMemberSearch} className="flex gap-4">
-            <input 
-              type="text" 
-              placeholder="Scan or enter Member ID..." 
-              value={memberCode}
-              onChange={(e) => setMemberCode(e.target.value)}
-              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-lg"
-              required
-            />
-            <button type="submit" disabled={loading} className="px-8 py-3 bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition font-bold disabled:opacity-50">
-              {loading ? "Searching..." : "Find Member"}
-            </button>
+              <input 
+                type="text" 
+                placeholder="Scan or enter Member ID..." 
+                value={memberCode}
+                onChange={(e) => setMemberCode(e.target.value)}
+                className="flex-1 px-6 py-4 border border-white/50 dark:border-gray-700 rounded-2xl bg-white/50 dark:bg-gray-900/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-lg shadow-inner transition-all"
+                required
+              />
+              <button type="submit" disabled={loading} className="px-10 py-4 bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-700 dark:to-gray-600 text-white rounded-2xl hover:from-black hover:to-gray-900 transition-all font-bold disabled:opacity-50 shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                {loading ? "Searching..." : "Find Member"}
+              </button>
           </form>
         </div>
 
         {member && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="p-6 bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{member.firstName} {member.lastName}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">ID: {member.memberCode} | Status: <span className="font-bold text-green-600">{member.status}</span></p>
+          <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800 rounded-3xl shadow-lg border border-white/50 dark:border-gray-700 overflow-hidden relative z-10 animate-fade-in-up">
+            <div className="p-8 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 border-b border-white/50 dark:border-gray-700 flex justify-between items-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+              <div className="relative z-10">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white">{member.firstName} {member.lastName}</h2>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mt-2 bg-white/50 dark:bg-gray-800/50 inline-block px-3 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
+                  ID: <span className="font-bold">{member.memberCode}</span> | Status: <span className="font-black text-green-600 dark:text-green-400">{member.status}</span>
+                </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-gray-500 uppercase">Active Checkouts</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{issuedBooks.length}</p>
+              <div className="text-right relative z-10 bg-white/60 dark:bg-gray-800/60 p-4 rounded-2xl border border-white/50 dark:border-gray-700 shadow-sm">
+                <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1">Active Checkouts</p>
+                <p className="text-3xl font-black text-blue-600 dark:text-blue-400 leading-none">{issuedBooks.length}</p>
               </div>
             </div>
 
             <div className="p-0">
               {issuedBooks.length === 0 ? (
-                <div className="p-12 text-center text-gray-500 dark:text-gray-400">
+                <div className="p-16 text-center font-medium text-gray-400 dark:text-gray-500 bg-white/30 dark:bg-gray-800/30">
                   This member has no active books to renew.
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
-                      <th className="p-4 font-medium">Book</th>
-                      <th className="p-4 font-medium">Barcode</th>
-                      <th className="p-4 font-medium">Due Date</th>
-                      <th className="p-4 font-medium">Renewals</th>
-                      <th className="p-4 font-medium text-right">Action</th>
+                    <tr className="bg-white/50 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-xs font-black uppercase tracking-widest border-b border-gray-200 dark:border-gray-700">
+                      <th className="p-5">Book</th>
+                      <th className="p-5">Barcode</th>
+                      <th className="p-5">Due Date</th>
+                      <th className="p-5">Renewals</th>
+                      <th className="p-5 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -133,26 +136,30 @@ const RenewBook = () => {
                       const isOverdue = new Date(tx.dueDate) < new Date();
                       
                       return (
-                        <tr key={tx._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                          <td className="p-4 font-bold text-gray-900 dark:text-white">{tx.bookId?.title}</td>
-                          <td className="p-4 text-gray-600 dark:text-gray-300 font-mono text-sm">{tx.bookCopyId?.barcode}</td>
-                          <td className="p-4">
-                            <span className={`font-bold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                        <tr key={tx._id} className="hover:bg-white/90 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-50 dark:border-gray-700/50 last:border-0 group">
+                          <td className="p-5 font-extrabold text-gray-900 dark:text-white text-base group-hover:text-blue-600 transition-colors">{tx.bookId?.title}</td>
+                          <td className="p-5 text-gray-500 dark:text-gray-400 font-mono text-sm font-medium">
+                            <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{tx.bookCopyId?.barcode}</span>
+                          </td>
+                          <td className="p-5">
+                            <span className={`font-black text-base ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
                               {new Date(tx.dueDate).toLocaleDateString()}
                             </span>
-                            {isOverdue && <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">OVERDUE</span>}
+                            {isOverdue && <span className="ml-3 text-xs bg-red-50 text-red-700 border border-red-200 dark:border-red-800 dark:bg-red-900/30 px-2 py-1 font-bold rounded-md shadow-sm">OVERDUE</span>}
                           </td>
-                          <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
-                            {tx.renewalCount} / {tx.maxRenewals || 1}
+                          <td className="p-5 text-sm font-bold text-gray-600 dark:text-gray-300">
+                            <span className="bg-white/50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-lg shadow-sm">
+                              {tx.renewalCount} <span className="text-gray-400">/</span> {tx.maxRenewals || 1}
+                            </span>
                           </td>
-                          <td className="p-4 text-right">
+                          <td className="p-5 text-right">
                             <button 
                               onClick={() => handleRenew(tx._id)}
                               disabled={renewingId === tx._id || tx.renewalCount >= (tx.maxRenewals || 1)}
-                              className={`px-4 py-2 rounded font-bold text-sm transition ${
+                              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm border ${
                                 tx.renewalCount >= (tx.maxRenewals || 1) 
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500' 
-                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50'
+                                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500' 
+                                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent hover:from-blue-700 hover:to-indigo-700 hover:shadow-md hover:-translate-y-0.5'
                               }`}
                             >
                               {renewingId === tx._id ? 'Renewing...' : (tx.renewalCount >= (tx.maxRenewals || 1) ? 'Limit Reached' : 'Renew')}

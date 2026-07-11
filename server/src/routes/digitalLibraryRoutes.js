@@ -14,7 +14,10 @@ router.post("/upload", checkPermission([PERMISSIONS.RESOURCE_UPLOAD]), storageSe
 // Viewing/Searching requires RESOURCE_VIEW
 router.get("/", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.getAllResources);
 router.get("/my-library", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.getMyLibrary);
+router.delete("/my-library/:id", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.removeFromMyLibrary);
+router.post("/:id/save", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.toggleSaveForLater);
 router.get("/:id", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.getResourceDetails);
+router.delete("/:id", checkPermission([PERMISSIONS.RESOURCE_DELETE]), digitalLibraryController.deleteResource);
 
 // Progress tracking
 router.post("/progress", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.updateReadingProgress);

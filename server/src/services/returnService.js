@@ -28,7 +28,7 @@ exports.returnBook = async (libraryId, copyBarcode, condition, returnedByUserId)
   const member = transaction.memberId;
 
   // 3. Due Date & Fine Calculation
-  const actualReturnDate = new Date();
+  const returnDate = new Date();
   const dueDate = new Date(transaction.dueDate);
   
   let lateDays = 0;
@@ -36,8 +36,8 @@ exports.returnBook = async (libraryId, copyBarcode, condition, returnedByUserId)
   let fineType = "LATE_RETURN";
   let reason = "Late Return Fine";
 
-  if (actualReturnDate > dueDate) {
-    const timeDiff = actualReturnDate.getTime() - dueDate.getTime();
+  if (returnDate > dueDate) {
+    const timeDiff = returnDate.getTime() - dueDate.getTime();
     lateDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
   }
 
@@ -87,7 +87,7 @@ exports.returnBook = async (libraryId, copyBarcode, condition, returnedByUserId)
 
   // 6. Update Transaction
   transaction.status = "RETURNED";
-  transaction.actualReturnDate = actualReturnDate;
+  transaction.returnDate = returnDate;
   transaction.lateDays = lateDays;
   transaction.fineAmount = fineAmount;
   transaction.returnCondition = finalCondition;

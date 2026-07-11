@@ -13,7 +13,10 @@ const RoleRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
+  // Support both hardcoded roles (user.role) and custom RBAC roles (user.roleId.name)
+  const currentRole = user.role || user.roleId?.name;
+
+  if (!allowedRoles.includes(currentRole)) {
     return <Navigate to="/unauthorized" />;
   }
 

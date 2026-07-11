@@ -64,9 +64,9 @@ const getMemberProfileId = async (req) => {
            await MemberCard.create({
               memberId: member._id,
               libraryId: user.libraryId,
-              cardNumber: "LIB-" + member.memberCode,
-              barcode: "LIB-" + member.memberCode,
-              qrCode: "LIB-" + member.memberCode,
+              cardNumber: member.memberCode,
+              barcode: member.memberCode,
+              qrCode: member.memberCode,
               issueDate: new Date(),
               expiryDate,
               status: "ACTIVE"
@@ -82,7 +82,10 @@ const getMemberProfileId = async (req) => {
        if (!existingTx) {
           // Find any book to issue
           const book = await Book.findOne({ libraryId: user.libraryId });
-          if (book) {
+          const BookCopy = require("../models/BookCopy");
+          const copy = book ? await BookCopy.findOne({ bookId: book._id }) : null;
+
+          if (book && copy) {
              const dueDate = new Date();
              dueDate.setDate(dueDate.getDate() - 2); // Overdue by 2 days
              
@@ -90,6 +93,7 @@ const getMemberProfileId = async (req) => {
                 memberId: member._id,
                 libraryId: user.libraryId,
                 bookId: book._id,
+                bookCopyId: copy._id,
                 issueDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // Issued 10 days ago
                 dueDate: dueDate,
                 status: "OVERDUE",
@@ -105,6 +109,19 @@ const getMemberProfileId = async (req) => {
                 pendingAmount: 10,
                 reason: "Overdue book return",
                 status: "PENDING"
+             });
+             
+             // Create a returned transaction for history
+             await Transaction.create({
+                memberId: member._id,
+                libraryId: user.libraryId,
+                bookId: book._id,
+                bookCopyId: copy._id,
+                issueDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Issued 30 days ago
+                dueDate: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000), 
+                returnDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // Returned 20 days ago
+                status: "RETURNED",
+                transactionType: "ISSUE"
              });
           }
        }
@@ -166,6 +183,107 @@ exports.reserveBook = async (req, res) => {
     const { bookId } = req.body;
     const reservation = await reservationService.reserveBook(req.user.libraryId, profileId, bookId, req.user._id);
     res.status(201).json({ success: true, data: reservation });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.cancelMyReservation = async (req, res) => {
+  try {
+    const profileId = await getMemberProfileId(req);
+    const reservationId = req.params.id;
+    
+    // Validate ownership
+    const reservation = await Reservation.findOne({ _id: reservationId, memberId: profileId });
+    if (!reservation) {
+      return res.status(404).json({ success: false, message: "Reservation not found or you do not have permission to cancel it." });
+    }
+    
+    // Proceed to cancel via service
+    const cancelled = await reservationService.cancelReservation(req.user.libraryId, reservationId, req.user._id);
+    res.status(200).json({ success: true, data: cancelled });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.payFines = async (req, res) => {
+  try {
+    const profileId = await getMemberProfileId(req);
+    const Fine = require("../models/Fine");
+    
+    // Find all pending and partial fines
+    const fines = await Fine.find({ 
+      memberId: profileId, 
+      libraryId: req.user.libraryId,
+      status: { $in: ["PENDING", "PARTIAL"] }
+    });
+    
+    if (fines.length === 0) {
+      return res.status(400).json({ success: false, message: "No pending fines to pay." });
+    }
+    
+    // Simulate payment by updating all to PAID
+    for (let fine of fines) {
+      fine.status = "PAID";
+      fine.pendingAmount = 0;
+      await fine.save();
+    }
+    
+    // Create a generic "Payment" transaction
+    const Transaction = require("../models/Transaction");
+    const { generateTransactionCode } = require("../services/transactionCodeService");
+    const paymentCode = await generateTransactionCode(req.user.libraryId, "PAY");
+    
+    await Transaction.create({
+      libraryId: req.user.libraryId,
+      memberId: profileId,
+      transactionType: "FINE_PAYMENT",
+      transactionCode: paymentCode,
+      amount: fines.reduce((sum, f) => sum + f.amount, 0),
+      status: "COMPLETED",
+      paymentMethod: "ONLINE",
+      paymentReference: "MOCK_PAYMENT_" + Date.now(),
+      issueDate: new Date()
+    });
+
+    res.status(200).json({ success: true, message: "Payment successful. All fines cleared." });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.renewBook = async (req, res) => {
+  try {
+    const profileId = await getMemberProfileId(req);
+    const transactionId = req.params.transactionId;
+    const Transaction = require("../models/Transaction");
+    
+    const issueTx = await Transaction.findOne({
+      _id: transactionId,
+      memberId: profileId,
+      transactionType: "ISSUE",
+      status: { $in: ["ISSUED", "OVERDUE"] }
+    });
+    
+    if (!issueTx) {
+      return res.status(404).json({ success: false, message: "Issue record not found or book is already returned." });
+    }
+    
+    if (issueTx.status === "OVERDUE") {
+      return res.status(400).json({ success: false, message: "Cannot renew an overdue book. Please return it and pay any pending fines." });
+    }
+    
+    // Extend due date by 7 days
+    const currentDueDate = new Date(issueTx.dueDate);
+    currentDueDate.setDate(currentDueDate.getDate() + 7);
+    issueTx.dueDate = currentDueDate;
+    
+    // Keep track of renewals
+    issueTx.notes = (issueTx.notes || "") + `\nRenewed on ${new Date().toLocaleDateString()}`;
+    await issueTx.save();
+    
+    res.status(200).json({ success: true, data: issueTx, message: "Book renewed successfully for 7 days." });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }

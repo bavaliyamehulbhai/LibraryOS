@@ -61,13 +61,15 @@ Content: "${content}"`;
   }
   else if (mode === "QUIZ") {
     prompt = `You are an AI Study Assistant. Generate a 5-question Multiple Choice Quiz on the following topic.
-Return EXACTLY in this format for each question:
-Q: [Question Text]
-A) [Option 1]
-B) [Option 2]
-C) [Option 3]
-D) [Option 4]
-Answer: [Correct Option Letter]
+You MUST return ONLY a valid JSON array containing the quiz data. Do not include any markdown formatting, backticks, or other text outside the JSON array.
+Format exactly like this:
+[
+  {
+    "question": "Question text here",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "answerIndex": 0
+  }
+]
 
 Topic: "${topic}"`;
     metricToUpdate = "quiz";
@@ -92,7 +94,23 @@ Topic: "${topic}"`;
     console.error("AI Study Assistant Error:", error.message);
     
     // Return a realistic mock response for demo purposes if the API key/model fails
-    const mockOutput = "### Mock AI Response\n\n- **Main Concepts**: " + topic + "\n- **Key Point**: This is a simulated response because the AI model is currently unavailable or the API key is incorrect.\n\nKeep studying!";
+    let mockOutput = "### Mock AI Response\n\n- **Main Concepts**: " + topic + "\n- **Key Point**: This is a simulated response because the AI model is currently unavailable or the API key is incorrect.\n\nKeep studying!";
+    
+    if (mode === "QUIZ") {
+      mockOutput = JSON.stringify([
+        {
+          question: `What is the main concept of ${topic || 'this topic'}?`,
+          options: ["It is a framework", "It is an architecture", "It is a simulated AI quiz", "It is a database"],
+          answerIndex: 2
+        },
+        {
+          question: "Which of the following is true?",
+          options: ["Mock data is useless", "This is a fallback response", "The AI API is working perfectly", "None of the above"],
+          answerIndex: 1
+        }
+      ]);
+    }
+
     this.updateProgress(userId, libraryId, metricToUpdate).catch(console.error);
     return mockOutput;
   }

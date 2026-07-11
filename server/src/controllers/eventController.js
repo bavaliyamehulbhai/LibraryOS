@@ -17,10 +17,49 @@ exports.createEvent = async (req, res) => {
 
 exports.getEvents = async (req, res) => {
   try {
-    const events = await Event.find({ libraryId: req.user.libraryId })
+    const libraryId = req.user.libraryId;
+    const count = await Event.countDocuments({ libraryId });
+    if (count === 0) {
+       const futureDate = new Date();
+       futureDate.setDate(futureDate.getDate() + 5);
+       
+       const endDate = new Date(futureDate);
+       endDate.setHours(endDate.getHours() + 2);
+
+       await Event.create({
+          libraryId,
+          organizerId: req.user.id || req.user._id,
+          title: "Introduction to Artificial Intelligence in Libraries",
+          description: "Join us for an interactive workshop on how AI is transforming digital libraries, content curation, and member experiences.",
+          eventType: "WORKSHOP",
+          startDate: futureDate,
+          endDate: endDate,
+          venue: "Main Conference Room, Level 2",
+          maxParticipants: 50,
+          registeredCount: 0,
+          status: "PUBLISHED"
+       });
+    }
+
+    const events = await Event.find({ libraryId })
       .populate("organizerId", "firstName lastName")
       .sort({ startDate: 1 });
     res.json({ success: true, data: events });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getMyRegistrations = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    if (!userId) {
+       return res.status(400).json({ success: false, message: "User ID not found in token" });
+    }
+    const registrations = await EventRegistration.find({ userId })
+      .select("eventId status")
+      .lean();
+    res.json({ success: true, data: registrations });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

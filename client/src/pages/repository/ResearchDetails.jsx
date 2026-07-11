@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -12,7 +13,12 @@ const ResearchDetails = () => {
   const [citationLoading, setCitationLoading] = useState(false);
   const [citationFormat, setCitationFormat] = useState("APA");
   const [citation, setCitation] = useState(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const userRole = user?.role || (user?.roleId?.name);
+  const isAdmin = ["SUPER_ADMIN", "LIBRARY_ADMIN"].includes(userRole);
   useEffect(() => {
     fetchPaper();
   }, [id]);
@@ -58,6 +64,19 @@ const ResearchDetails = () => {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      const res = await api.delete(`/v1/research/${id}`);
+      if (res.data.success) {
+        toast.success("Research deleted successfully");
+        navigate('/repository');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete research");
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (loading) return <div className="p-12 flex justify-center"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;
   if (!paper) return <div className="p-12 text-center text-gray-500">Research not found.</div>;
 
@@ -83,14 +102,21 @@ const ResearchDetails = () => {
                {paper.title}
             </h1>
          </div>
-         <a 
-            href={paper.fileUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap"
-         >
-            <span className="text-xl">📄</span> Read Document
-         </a>
+         <div className="flex items-center gap-3">
+           <a 
+              href={paper.fileUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap"
+           >
+              <span className="text-xl">📄</span> Read Document
+           </a>
+           {isAdmin && (
+             <button onClick={() => setShowDeleteConfirm(true)} className="px-6 border-2 border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-bold py-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition flex justify-center items-center" title="Delete Research">
+               <span className="text-xl">🗑️</span>
+             </button>
+           )}
+         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -130,6 +156,69 @@ const ResearchDetails = () => {
                      Click "Generate AI Summary" to extract key findings and methodology.
                   </div>
                )}
+            </div>
+
+         </div>
+
+         {/* External Links & Academic Integrations */}
+         <div className="space-y-6 lg:col-span-2">
+            
+            {(paper.externalLinks?.length > 0) && (
+               <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                     <span className="text-2xl">🔗</span> External Links & LMS
+                  </h3>
+                  <div className="space-y-3">
+                     {paper.externalLinks.map((link, idx) => (
+                        <a 
+                           key={idx} href={link.url} target="_blank" rel="noopener noreferrer"
+                           className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
+                        >
+                           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center font-bold">
+                              {link.platform.charAt(0).toUpperCase()}
+                           </div>
+                           <div className="flex-1">
+                              <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{link.platform}</h4>
+                              <p className="text-sm text-gray-500 truncate max-w-md">{link.url}</p>
+                           </div>
+                           <span className="text-gray-400 group-hover:text-blue-600">↗</span>
+                        </a>
+                     ))}
+                  </div>
+               </div>
+            )}
+
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <span className="text-2xl">🌐</span> Search Across Academia
+               </h3>
+               <p className="text-gray-500 text-sm mb-6">Instantly find related citations, full-texts, or author profiles for this paper across global academic networks.</p>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <a 
+                     href={`https://scholar.google.com/scholar?q=${encodeURIComponent(paper.title)}`}
+                     target="_blank" rel="noopener noreferrer"
+                     className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-blue-400 rounded-xl flex items-center gap-3 transition-all"
+                  >
+                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c7/Google_Scholar_logo.svg" alt="Google Scholar" className="w-8 h-8 object-contain" />
+                     <div>
+                        <div className="font-bold text-gray-900 dark:text-white">Google Scholar</div>
+                        <div className="text-xs text-gray-500">Search for citations</div>
+                     </div>
+                  </a>
+
+                  <a 
+                     href={`https://www.researchgate.net/search/publication?q=${encodeURIComponent(paper.title)}`}
+                     target="_blank" rel="noopener noreferrer"
+                     className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-teal-400 rounded-xl flex items-center gap-3 transition-all"
+                  >
+                     <div className="w-8 h-8 bg-teal-500 text-white rounded flex items-center justify-center font-bold text-xl">R</div>
+                     <div>
+                        <div className="font-bold text-gray-900 dark:text-white">ResearchGate</div>
+                        <div className="text-xs text-gray-500">Find full-text versions</div>
+                     </div>
+                  </a>
+               </div>
             </div>
 
          </div>
@@ -214,6 +303,35 @@ const ResearchDetails = () => {
 
          </div>
       </div>
+
+      {/* Beautiful Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 dark:border-gray-700 transform transition-all animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
+              ⚠️
+            </div>
+            <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">Delete Research?</h3>
+            <p className="text-center text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+              Are you absolutely sure you want to permanently delete <strong className="text-gray-700 dark:text-gray-300">{paper.title}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md shadow-red-500/30 transition-all hover:-translate-y-0.5"
+              >
+                Yes, Delete it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

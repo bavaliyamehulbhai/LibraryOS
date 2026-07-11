@@ -2,15 +2,16 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useRoles, useDeleteRole } from "../../hooks/useRoles";
 import { Shield, Users, Trash2, Edit, Plus } from "lucide-react";
+import { confirmAlert } from "../../utils/confirmAlert";
 
 const Roles = () => {
   const { data, isLoading } = useRoles();
   const deleteRole = useDeleteRole();
   const roles = data?.data || [];
 
-  const handleDelete = (id, name, isSystem) => {
+  const handleDelete = async (id, name, isSystem) => {
     if (isSystem) return alert("System roles cannot be deleted.");
-    if (window.confirm(`Are you sure you want to delete the role ${name}?`)) {
+    if (await confirmAlert(`Are you sure you want to delete the role ${name}?`)) {
       deleteRole.mutate(id);
     }
   };

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuthors, useDeleteAuthor } from "../../hooks/useAuthors";
 import { Plus, Search, Edit, Trash2, Eye, User } from "lucide-react";
 import toast from "react-hot-toast";
+import { confirmAlert } from "../../utils/confirmAlert";
 import { format } from "date-fns";
 
 const Authors = () => {
@@ -11,8 +12,8 @@ const Authors = () => {
   const { data, isLoading, isError } = useAuthors({ search, page, limit: 10 });
   const { mutate: deleteAuthor } = useDeleteAuthor();
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this author?")) {
+  const handleDelete = async (id) => {
+    if (await confirmAlert("Are you sure you want to delete this author?")) {
       deleteAuthor(id, {
         onSuccess: () => toast.success("Author deleted successfully"),
         onError: () => toast.error("Failed to delete author")

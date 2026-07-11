@@ -36,9 +36,54 @@ exports.getInventory = async (req, res) => {
   }
 };
 
+exports.getReading = async (req, res) => {
+  try {
+    const data = await analyticsService.getReadingAnalytics(req.user.libraryId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getRisk = async (req, res) => {
+  try {
+    const data = await analyticsService.getRiskAnalytics(req.user.libraryId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 exports.getTrends = async (req, res) => {
   try {
     const data = await analyticsService.getTrendAnalytics(req.user.libraryId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getHealth = async (req, res) => {
+  try {
+    const data = await analyticsService.getHealthAnalytics(req.user.libraryId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getChurn = async (req, res) => {
+  try {
+    const data = await analyticsService.getChurnAnalytics(req.user.libraryId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getInsights = async (req, res) => {
+  try {
+    const data = await analyticsService.getInsights(req.user.libraryId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

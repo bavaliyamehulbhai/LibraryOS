@@ -608,6 +608,28 @@ const verify2FASetup = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    if (name) user.name = name;
+    if (email && email !== user.email) {
+      const existing = await User.findOne({ email });
+      if (existing) {
+        return res.status(400).json({ success: false, message: "Email already in use" });
+      }
+      user.email = email;
+    }
+
+    await user.save();
+    res.json({ success: true, message: "Profile updated successfully", data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -620,5 +642,6 @@ module.exports = {
   logoutAll,
   setup2FA,
   verify2FASetup,
-  requestOtpLogin
+  requestOtpLogin,
+  updateProfile
 };

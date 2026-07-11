@@ -89,3 +89,13 @@ exports.summarizeChapter = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.askChat = async (req, res) => {
+  try {
+    const { question, contextText } = req.body;
+    const answer = await readerService.askChat(question, contextText);
+    res.json({ success: true, data: answer });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

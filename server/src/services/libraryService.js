@@ -18,6 +18,9 @@ const createLibrary = async (data) => {
       throw new Error("Library Already Exists");
     }
 
+    const adminId = new mongoose.Types.ObjectId();
+    const finalCreatedBy = data.createdBy || adminId;
+
     const library = new Library({
       name: data.name,
       code: data.code,
@@ -27,7 +30,8 @@ const createLibrary = async (data) => {
       city: data.city || "Pending",
       state: data.state || "Pending",
       pincode: data.pincode || "000000",
-      createdBy: data.createdBy,
+      createdBy: finalCreatedBy,
+      ownerId: adminId,
       status: "TRIAL",
       trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days trial
       isActive: true,
@@ -36,6 +40,7 @@ const createLibrary = async (data) => {
     await library.save({ session });
 
     const adminUser = new User({
+      _id: adminId,
       name: data.adminName,
       email: data.adminEmail,
       password: "Password123!",
@@ -44,9 +49,6 @@ const createLibrary = async (data) => {
       emailVerified: true
     });
     await adminUser.save({ session });
-
-    library.ownerId = adminUser._id;
-    await library.save({ session });
 
     const Organization = require("../models/Organization");
     const orgCount = await Organization.countDocuments();
@@ -110,7 +112,7 @@ const createLibrary = async (data) => {
       libraryId: library._id,
       action: "CREATE_LIBRARY",
       entity: "LIBRARY",
-      userId: data.createdBy,
+      userId: data.createdBy || adminUser._id,
       details: `Created ${library.name}`
     }], { session });
 

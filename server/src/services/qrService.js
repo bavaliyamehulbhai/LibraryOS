@@ -142,10 +142,60 @@ const getStats = async (libraryId) => {
   };
 };
 
+const circulationService = require("./circulationService");
+const Transaction = require("../models/Transaction");
+
+const selfCheckout = async (copyCode, libraryId, userId) => {
+  const copy = await BookCopy.findOne({ copyCode, libraryId });
+  if (!copy) throw new Error("Copy not found");
+  
+  // Find member record for this user
+  const Member = require("../models/Member");
+  const member = await Member.findOne({ userId, libraryId });
+  if (!member) throw new Error("You do not have an active library membership");
+
+  // Call the robust circulation logic
+  const transaction = await circulationService.issueBook(libraryId, member._id, copy._id, userId);
+
+  await QRScanLog.create({
+    copyId: copy._id,
+    userId,
+    libraryId,
+    action: "SCAN", // Or create a new enum for CHECKOUT
+    device: "Self-Checkout Portal"
+  });
+
+  return transaction;
+};
+
+const selfReturn = async (copyCode, libraryId, userId) => {
+  const copy = await BookCopy.findOne({ copyCode, libraryId });
+  if (!copy) throw new Error("Copy not found");
+
+  // Find active transaction for this copy
+  const activeTx = await Transaction.findOne({ bookCopyId: copy._id, libraryId, status: { $in: ["ISSUED", "RENEWED", "OVERDUE"] } });
+  if (!activeTx) throw new Error("This book is not currently issued to anyone");
+
+  // Call robust return logic (automatically handles fines if overdue)
+  const transaction = await circulationService.returnBook(libraryId, activeTx._id, userId);
+
+  await QRScanLog.create({
+    copyId: copy._id,
+    userId,
+    libraryId,
+    action: "SCAN",
+    device: "Self-Return Portal"
+  });
+
+  return transaction;
+};
+
 module.exports = {
   generateQRCode,
   generateBulkQRCodes,
   scanQRCode,
   getQRCodeData,
-  getStats
+  getStats,
+  selfCheckout,
+  selfReturn
 };

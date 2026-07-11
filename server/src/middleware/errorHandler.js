@@ -7,6 +7,13 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ success: false, message: err.message });
   }
 
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({ 
+      success: false, 
+      message: "File size exceeds the 5MB limit. Please compress your file or use the 'External Link' storage method." 
+    });
+  }
+
   if (err.code && err.code === 11000) {
     return res.status(400).json({ success: false, message: "Duplicate field value entered" });
   }

@@ -40,22 +40,25 @@ const GlobalSearch = () => {
         </p>
       </div>
 
-      <div className="max-w-3xl mx-auto mb-16">
-        <form onSubmit={handleSearch} className="relative shadow-2xl rounded-full overflow-hidden flex bg-white dark:bg-gray-800 border-4 border-white dark:border-gray-800 focus-within:border-blue-500 transition-colors">
-          <span className="pl-6 flex items-center text-3xl">🔍</span>
+      <div className="max-w-3xl mx-auto mb-16 relative z-10">
+        <div className="absolute inset-0 bg-blue-500/20 blur-3xl -z-10 rounded-full"></div>
+        <form onSubmit={handleSearch} className="relative shadow-2xl rounded-full overflow-hidden flex bg-white dark:bg-gray-800 border-4 border-white dark:border-gray-700 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/20 transition-all">
+          <span className="pl-6 flex items-center text-2xl text-blue-500">
+             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </span>
           <input 
             type="text" 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={searchMode === "EXACT" ? "Search by title, author, or keyword..." : "Describe what you want to learn (e.g. books for backend interviews)..."}
-            className="w-full p-5 text-xl outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400"
+            placeholder={searchMode === "EXACT" ? "Search by title, author, or keyword..." : "Describe what you want to learn..."}
+            className="w-full p-5 text-xl font-medium outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400"
           />
           <button 
             type="submit" 
             disabled={loading}
-            className="px-10 py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold text-lg transition-colors"
+            className="px-12 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-gray-400 disabled:to-gray-500 text-white font-black uppercase tracking-wider text-lg transition-all"
           >
-            {loading ? "Searching..." : "Search"}
+            {loading ? "..." : "Search"}
           </button>
         </form>
 
@@ -110,16 +113,22 @@ const GlobalSearch = () => {
                   <p className="text-gray-500 p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">No books found.</p>
                 ) : (
                   results.books.map(book => (
-                    <Link to={`/books/${book._id}`} key={book._id} className="flex gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                      {book.coverImage ? (
-                        <img src={book.coverImage} alt={book.title} className="w-16 h-24 object-cover rounded shadow-sm" />
-                      ) : (
-                        <div className="w-16 h-24 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center text-xl">📘</div>
-                      )}
-                      <div>
-                        <h3 className="font-bold text-lg text-blue-600 dark:text-blue-400 line-clamp-1">{book.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">By {book.author?.name || "Unknown"}</p>
-                        <p className="text-xs text-gray-500 line-clamp-2">{book.description}</p>
+                    <Link to={`/portal/book/${book._id}`} key={book._id} className="flex gap-5 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:border-blue-200 dark:hover:border-blue-900 transition-all group">
+                      <div className="w-20 h-28 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 shadow-sm relative">
+                        <div className="absolute inset-0 flex items-center justify-center text-gray-400">📘</div>
+                        {book.coverImage && (
+                          <img 
+                            src={book.coverImage} 
+                            alt={book.title} 
+                            className="w-full h-full object-cover relative z-10 group-hover:scale-105 transition-transform duration-300" 
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1 group-hover:text-blue-600 transition-colors">{book.title}</h3>
+                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">By {book.author?.name || "Unknown"}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{book.description || "No description available."}</p>
                       </div>
                     </Link>
                   ))
@@ -138,17 +147,19 @@ const GlobalSearch = () => {
                   <p className="text-gray-500 p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">No research found.</p>
                 ) : (
                   results.research.map(paper => (
-                    <Link to={`/repository/${paper._id}`} key={paper._id} className="flex gap-4 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                      <div className="text-3xl">📄</div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start mb-1">
-                           <h3 className="font-bold text-lg text-indigo-600 dark:text-indigo-400 line-clamp-1 flex-1 pr-4">{paper.title}</h3>
-                           <span className="text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-2 py-1 rounded">
+                    <Link to={`/repository/${paper._id}`} key={paper._id} className="flex gap-5 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl hover:border-indigo-200 dark:hover:border-indigo-900 transition-all group">
+                      <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1 gap-2">
+                           <h3 className="font-bold text-lg text-gray-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 transition-colors">{paper.title}</h3>
+                           <span className="text-[10px] font-black bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded flex-shrink-0">
                               {paper.publicationYear}
                            </span>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{paper.authors.join(", ")}</p>
-                        <p className="text-xs text-gray-500 line-clamp-2">{paper.abstract}</p>
+                        <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-2 truncate">{paper.authors?.join(", ") || "Unknown Authors"}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{paper.abstract}</p>
                       </div>
                     </Link>
                   ))

@@ -63,19 +63,28 @@ exports.refundPayment = async (req, res) => {
   }
 };
 
+const mongoose = require('mongoose');
+
 exports.getRevenueDashboard = async (req, res) => {
   try {
-    const libraryId = req.user.libraryId;
     const now = new Date();
-
     const startOfDay = new Date(now.setHours(0, 0, 0, 0));
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
+    const matchQuery = { status: "SUCCESS" };
+    const refundQuery = { status: "REFUNDED" };
+    
+    if (req.user.libraryId) {
+      const libraryId = new mongoose.Types.ObjectId(req.user.libraryId);
+      matchQuery.libraryId = libraryId;
+      refundQuery.libraryId = libraryId;
+    }
+
     const [todayRevenue, monthRevenue, totalRevenue, refundsCount] = await Promise.all([
-      Payment.aggregate([{ $match: { libraryId, status: "SUCCESS", createdAt: { $gte: startOfDay } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
-      Payment.aggregate([{ $match: { libraryId, status: "SUCCESS", createdAt: { $gte: startOfMonth } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
-      Payment.aggregate([{ $match: { libraryId, status: "SUCCESS" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
-      Payment.countDocuments({ libraryId, status: "REFUNDED" })
+      Payment.aggregate([{ $match: { ...matchQuery, createdAt: { $gte: startOfDay } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+      Payment.aggregate([{ $match: { ...matchQuery, createdAt: { $gte: startOfMonth } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+      Payment.aggregate([{ $match: matchQuery }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+      Payment.countDocuments(refundQuery)
     ]);
 
     res.status(200).json({

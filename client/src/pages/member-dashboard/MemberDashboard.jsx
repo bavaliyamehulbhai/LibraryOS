@@ -64,7 +64,7 @@ const MemberDashboard = () => {
             <ProfileCard profile={profile} plan={plan} />
           </div>
           <div>
-            <DigitalCardWidget card={card} profile={profile} />
+            <DigitalCardWidget card={card} profile={profile} plan={plan} />
           </div>
         </div>
 

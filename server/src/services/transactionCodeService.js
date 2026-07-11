@@ -24,6 +24,12 @@ exports.generateTransactionCode = async (libraryId, prefix = "ISS") => {
       emailCode: { $regex: `^${prefix}-${year}-` }
     }).sort({ createdAt: -1 });
     codeField = lastRecord?.emailCode;
+  } else if (prefix === "RES") {
+    const Reservation = require("../models/Reservation");
+    lastRecord = await Reservation.findOne({
+      reservationCode: { $regex: `^${prefix}-${year}-` }
+    }).sort({ createdAt: -1 });
+    codeField = lastRecord?.reservationCode;
   } else {
     lastRecord = await Transaction.findOne({ 
       transactionCode: { $regex: `^${prefix}-${year}-` }

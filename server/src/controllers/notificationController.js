@@ -53,6 +53,18 @@ exports.sendBulkAnnouncement = async (req, res) => {
   }
 };
 
+exports.getGlobalAnnouncements = async (req, res) => {
+  try {
+    if (req.user.role !== "SUPER_ADMIN") {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+    const announcements = await notificationService.getGlobalAnnouncements();
+    res.status(200).json({ success: true, data: announcements });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 exports.getTemplates = async (req, res) => {
   try {
     const libraryId = req.user.libraryId || req.libraryId;

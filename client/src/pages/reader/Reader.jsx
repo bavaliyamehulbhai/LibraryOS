@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Document, Page, pdfjs } from 'react-pdf';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -10,11 +10,13 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 const Reader = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [resource, setResource] = useState(null);
+  const readerRef = React.useRef(null);
   
   // PDF State
   const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
+  const [pageNumber, setPageNumber] = useState(parseInt(searchParams.get('page')) || 1);
   const [scale, setScale] = useState(1.0);
   
   // UI State
@@ -25,8 +27,10 @@ const Reader = () => {
   // Features State
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
-  const [aiResponse, setAiResponse] = useState("");
+  const [chatHistory, setChatHistory] = useState([{ role: 'assistant', content: "Hi! I'm your AI Reading Assistant. I can summarize pages, explain concepts, or answer any questions about the current page." }]);
+  const [chatInput, setChatInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [pageText, setPageText] = useState("");
 
   useEffect(() => {
     const fetchResource = async () => {
@@ -74,6 +78,16 @@ const Reader = () => {
     setNumPages(numPages);
   };
 
+  const onPageLoadSuccess = async (page) => {
+    try {
+      const textContent = await page.getTextContent();
+      const text = textContent.items.map(item => item.str).join(' ');
+      setPageText(text);
+    } catch (err) {
+      console.error("Could not extract text", err);
+    }
+  };
+
   const changePage = (offset) => {
     setPageNumber(prevPageNumber => {
       const newPage = prevPageNumber + offset;
@@ -102,26 +116,94 @@ const Reader = () => {
   };
 
   const askAiSummarize = async () => {
+    let context = pageText?.trim();
+    if (!context) {
+      if (resource?.description) {
+        context = `Title: ${resource.title}\nDescription: ${resource.description}`;
+      } else {
+        toast.error("No readable text found on this page to summarize.");
+        return;
+      }
+    }
+    
+    const userMsg = { role: 'user', content: 'Please summarize this page.' };
+    setChatHistory(prev => [...prev, userMsg]);
     setIsAiLoading(true);
-    setAiResponse("");
+    
     try {
-      // In a real app we'd pass the actual extracted page text. We pass a mock string here.
-      const res = await api.post('/v1/reader/ai/summarize', { text: `Simulated text from page ${pageNumber}` });
+      const res = await api.post('/v1/reader/ai/summarize', { text: context });
       if (res.data.success) {
-        setAiResponse(res.data.data);
+        setChatHistory(prev => [...prev, { role: 'assistant', content: res.data.data }]);
       }
     } catch (error) {
       toast.error("AI request failed");
+      setChatHistory(prev => [...prev, { role: 'assistant', content: "Failed to generate summary." }]);
     } finally {
       setIsAiLoading(false);
     }
   };
 
+  const askAiChat = async () => {
+    if (!chatInput.trim()) return;
+    
+    let context = pageText?.trim();
+    if (!context) {
+      if (resource?.description) {
+        context = `Title: ${resource.title}\nDescription: ${resource.description}`;
+      } else {
+        toast.error("No readable text found on this page to use as context.");
+        return;
+      }
+    }
+    
+    const userMsg = { role: 'user', content: chatInput };
+    const question = chatInput;
+    setChatInput("");
+    setChatHistory(prev => [...prev, userMsg]);
+    setIsAiLoading(true);
+    
+    try {
+      const res = await api.post('/v1/reader/ai/chat', { question, contextText: context });
+      if (res.data.success) {
+        setChatHistory(prev => [...prev, { role: 'assistant', content: res.data.data }]);
+      }
+    } catch (error) {
+      toast.error("AI request failed");
+      setChatHistory(prev => [...prev, { role: 'assistant', content: "Failed to get an answer." }]);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const getFileUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    // If we are in dev mode and it's a relative URL, point to backend port 5000
+    if (import.meta.env.DEV) {
+      return `http://localhost:5000${url}`;
+    }
+    return url;
+  };
+
   if (loading) return <div className="p-20 text-center text-gray-500">Loading Reader Engine...</div>;
   if (!resource) return null;
 
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      if (readerRef.current?.requestFullscreen) {
+        readerRef.current.requestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  const isExternalUrl = resource.fileUrl?.startsWith('http') && !resource.fileUrl.includes('cloudinary.com') && !resource.fileUrl.includes('localhost');
+
   return (
-    <div className={`flex h-screen flex-col ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gray-100 text-gray-900'} transition-colors`}>
+    <div ref={readerRef} className={`flex h-screen flex-col ${isDarkMode ? 'bg-gray-900 text-gray-200' : 'bg-gray-100 text-gray-900'} transition-colors`}>
       
       {/* Top Toolbar */}
       <div className={`h-16 flex items-center justify-between px-6 border-b ${isDarkMode ? 'border-gray-800 bg-gray-950' : 'border-gray-300 bg-white shadow-sm'}`}>
@@ -129,18 +211,36 @@ const Reader = () => {
           <button onClick={() => navigate(-1)} className="mr-4 hover:text-blue-500">
             &larr; Exit
           </button>
-          <h1 className="font-bold truncate max-w-md" title={resource.title}>{resource.title}</h1>
+          <h1 className="font-bold truncate max-w-[200px]" title={resource.title}>{resource.title}</h1>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="flex gap-2">
-            <button onClick={() => setScale(s => Math.max(0.5, s - 0.25))} className="p-2 bg-gray-200 dark:bg-gray-800 rounded">Zoom Out</button>
-            <span className="p-2 font-bold">{Math.round(scale * 100)}%</span>
-            <button onClick={() => setScale(s => Math.min(2.5, s + 0.25))} className="p-2 bg-gray-200 dark:bg-gray-800 rounded">Zoom In</button>
+        {/* Pagination Moved to Top Toolbar */}
+        {!isExternalUrl && (
+          <div className="flex items-center gap-2 font-medium">
+            <button disabled={pageNumber <= 1} onClick={() => changePage(-1)} className="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 text-lg">&lt;</button>
+            <span className="text-sm">Page {pageNumber} of {numPages || '--'}</span>
+            <button disabled={pageNumber >= numPages} onClick={() => changePage(1)} className="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 text-lg">&gt;</button>
           </div>
+        )}
+        
+        <div className="flex items-center gap-4">
+          {!isExternalUrl && (
+            <div className="flex gap-2">
+              <button onClick={() => setScale(s => Math.max(0.5, s - 0.25))} className="p-2 bg-gray-200 dark:bg-gray-800 rounded text-sm">Zoom Out</button>
+              <span className="p-2 font-bold text-sm">{Math.round(scale * 100)}%</span>
+              <button onClick={() => setScale(s => Math.min(2.5, s + 0.25))} className="p-2 bg-gray-200 dark:bg-gray-800 rounded text-sm">Zoom In</button>
+            </div>
+          )}
+          <button 
+            onClick={toggleFullScreen}
+            className="p-2 rounded bg-gray-200 dark:bg-gray-800 text-sm"
+            title="Toggle Fullscreen"
+          >
+            ⛶ Fullscreen
+          </button>
           <button 
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 rounded bg-gray-200 dark:bg-gray-800"
+            className="p-2 rounded bg-gray-200 dark:bg-gray-800 text-sm"
           >
             {isDarkMode ? '☀️ Light' : '🌙 Dark'}
           </button>
@@ -150,29 +250,41 @@ const Reader = () => {
       <div className="flex flex-1 overflow-hidden">
         
         {/* PDF Viewer Area */}
-        <div className="flex-1 overflow-auto flex justify-center p-8 relative">
-          <div className="shadow-2xl">
-             <Document
-              file={'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf'}
-              onLoadSuccess={onDocumentLoadSuccess}
-              loading={<div className="p-10">Loading PDF...</div>}
-              error={<div className="p-10 text-red-500">Error loading PDF. Ensure the URL is valid.</div>}
-            >
-              <Page 
-                pageNumber={pageNumber} 
-                scale={scale} 
-                renderTextLayer={false} 
-                renderAnnotationLayer={false}
-                className={isDarkMode ? 'filter invert hue-rotate-180' : ''} // CSS trick for Dark Mode PDF
-              />
-            </Document>
-          </div>
-          
-          {/* Floating Pagination */}
-          <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4 px-6 py-3 rounded-full shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <button disabled={pageNumber <= 1} onClick={() => changePage(-1)} className="px-3 hover:text-blue-500 font-bold">&lt;</button>
-            <span>Page {pageNumber} of {numPages || '--'}</span>
-            <button disabled={pageNumber >= numPages} onClick={() => changePage(1)} className="px-3 hover:text-blue-500 font-bold">&gt;</button>
+        <div className="flex-1 overflow-auto p-8 relative flex justify-center">
+          <div className="shadow-2xl w-full max-w-5xl flex justify-center bg-white dark:bg-gray-800 rounded-xl overflow-hidden min-h-[800px]">
+             {isExternalUrl ? (
+               <div className="w-full h-full flex flex-col">
+                 <div className="bg-blue-50 dark:bg-blue-900/30 p-3 text-sm text-blue-800 dark:text-blue-200 border-b border-blue-200 dark:border-blue-800 text-center flex justify-between items-center px-6">
+                   <span>This is an externally hosted resource.</span>
+                   <a href={resource.fileUrl} target="_blank" rel="noreferrer" className="font-bold bg-blue-600 text-white px-4 py-1 rounded-lg hover:bg-blue-700 transition">
+                     Open in New Tab ↗
+                   </a>
+                 </div>
+                 <iframe 
+                   src={resource.fileUrl.includes('drive.google.com/file/d/') ? resource.fileUrl.replace(/\/view.*$/, '/preview') : resource.fileUrl} 
+                   className="w-full h-full border-0 min-h-[800px]"
+                   title={resource.title}
+                   allow="autoplay; encrypted-media"
+                 ></iframe>
+               </div>
+             ) : (
+               <Document
+                file={getFileUrl(resource.fileUrl)}
+                onLoadSuccess={onDocumentLoadSuccess}
+                loading={<div className="p-10 flex flex-col items-center justify-center h-full"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div><p>Loading PDF Engine...</p></div>}
+                error={<div className="p-10 text-red-500 font-bold flex flex-col items-center"><span className="text-4xl mb-4">⚠️</span> Error loading PDF. Ensure the URL is valid or CORS is enabled.</div>}
+                className="flex justify-center"
+              >
+                <Page 
+                  pageNumber={pageNumber} 
+                  scale={scale} 
+                  renderTextLayer={false} 
+                  renderAnnotationLayer={false}
+                  onLoadSuccess={onPageLoadSuccess}
+                  className={`${isDarkMode ? 'filter invert hue-rotate-180' : ''} shadow-lg`} 
+                />
+              </Document>
+             )}
           </div>
         </div>
 
@@ -185,17 +297,19 @@ const Reader = () => {
             >
               Notes
             </button>
-            <button 
-              className={`flex-1 p-4 font-bold flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'text-blue-500 border-b-2 border-blue-500' : ''}`}
-              onClick={() => setActiveTab('ai')}
-            >
-              <span className="text-xl">🤖</span> AI Assistant
-            </button>
+            {!isExternalUrl && (
+              <button 
+                className={`flex-1 p-4 font-bold flex items-center justify-center gap-2 ${activeTab === 'ai' ? 'text-blue-500 border-b-2 border-blue-500' : ''}`}
+                onClick={() => setActiveTab('ai')}
+              >
+                <span className="text-xl">🤖</span> AI Assistant
+              </button>
+            )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-0 flex flex-col h-full">
             {activeTab === 'notes' && (
-              <div className="space-y-6">
+              <div className="space-y-6 p-4">
                 <div>
                   <textarea 
                     value={newNote}
@@ -232,32 +346,54 @@ const Reader = () => {
             )}
 
             {activeTab === 'ai' && (
-              <div className="space-y-6">
-                <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                  <p className="text-sm">Hi! I'm your AI Reading Assistant. I can summarize pages, explain complex terms, or quiz you on this content.</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={askAiSummarize} disabled={isAiLoading} className="py-2 px-3 bg-indigo-600 text-white text-sm font-bold rounded hover:bg-indigo-700 disabled:opacity-50">
+              <div className="flex flex-col h-full bg-white/50 dark:bg-gray-900/50">
+                <div className="flex gap-2 p-3 border-b dark:border-gray-800">
+                  <button onClick={askAiSummarize} disabled={isAiLoading} className="flex-1 py-1.5 px-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-bold rounded-lg hover:shadow-lg transition disabled:opacity-50">
                     Summarize Page
                   </button>
-                  <button disabled className="py-2 px-3 bg-purple-600 text-white text-sm font-bold rounded opacity-50 cursor-not-allowed">
-                    Explain Text
+                  <button onClick={() => setChatInput("Explain the main concept of this page.")} className="flex-1 py-1.5 px-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-sm font-bold rounded-lg hover:shadow-lg transition">
+                    Explain Concept
                   </button>
                 </div>
 
-                {isAiLoading && (
-                  <div className="flex justify-center py-8">
-                     <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                  </div>
-                )}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {chatHistory.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : (isDarkMode ? 'bg-gray-800 text-gray-200 rounded-bl-none border border-gray-700' : 'bg-white text-gray-800 rounded-bl-none border border-gray-200 shadow-sm')} whitespace-pre-wrap`}>
+                        {msg.role === 'assistant' && <span className="mr-2">✨</span>}
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {isAiLoading && (
+                    <div className="flex justify-start">
+                      <div className={`max-w-[85%] p-3 rounded-2xl rounded-bl-none ${isDarkMode ? 'bg-gray-800' : 'bg-white border shadow-sm'}`}>
+                         <div className="flex gap-1">
+                           <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                           <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                           <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                         </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                {aiResponse && !isAiLoading && (
-                  <div className={`p-4 rounded-lg text-sm leading-relaxed ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                    <h3 className="font-bold mb-2 flex items-center gap-2"><span className="text-indigo-500">✨</span> AI Insight</h3>
-                    {aiResponse}
+                <div className="p-3 border-t dark:border-gray-800 bg-white dark:bg-gray-900 mt-auto">
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2 border border-gray-200 dark:border-gray-700">
+                    <input 
+                      type="text" 
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && askAiChat()}
+                      placeholder="Ask anything about this page..."
+                      className="flex-1 bg-transparent outline-none text-sm dark:text-white"
+                      disabled={isAiLoading}
+                    />
+                    <button onClick={askAiChat} disabled={!chatInput.trim() || isAiLoading} className="text-blue-600 disabled:text-gray-400 font-bold ml-2">
+                      Send
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             )}
           </div>

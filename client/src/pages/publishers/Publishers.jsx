@@ -4,6 +4,7 @@ import { usePublishers, useDeletePublisher } from "../../hooks/usePublishers";
 import { Plus, Search, Edit, Trash2, Eye, Building2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
+import { confirmAlert } from "../../utils/confirmAlert";
 
 const Publishers = () => {
   const [search, setSearch] = useState("");
@@ -11,8 +12,8 @@ const Publishers = () => {
   const { data, isLoading, isError } = usePublishers({ search, page, limit: 10 });
   const { mutate: deletePublisher } = useDeletePublisher();
 
-  const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this publisher?")) {
+  const handleDelete = async (id) => {
+    if (await confirmAlert("Are you sure you want to delete this publisher?")) {
       deletePublisher(id, {
         onSuccess: () => toast.success("Publisher deleted successfully"),
         onError: () => toast.error("Failed to delete publisher")

@@ -28,23 +28,47 @@ exports.getBooks = async (query, libraryId) => {
     .lean(); // Use lean so we can attach properties
 
   const Inventory = require("../models/Inventory");
+  const BookCopy = require("../models/BookCopy");
   
   // Fetch inventory for these books
   const bookIds = books.map(b => b._id);
-  const inventories = await Inventory.find({ bookId: { $in: bookIds }, libraryId });
+  
+  const mongoose = require("mongoose");
+  const libObjectId = typeof libraryId === 'string' ? new mongoose.Types.ObjectId(libraryId) : libraryId;
+
+  const [inventories, copiesAgg] = await Promise.all([
+    Inventory.find({ bookId: { $in: bookIds }, libraryId }),
+    BookCopy.aggregate([
+      { $match: { bookId: { $in: bookIds }, libraryId: libObjectId } },
+      { $group: {
+          _id: "$bookId",
+          totalCopies: { $sum: 1 },
+          issuedCopies: { $sum: { $cond: [{ $eq: ["$status", "ISSUED"] }, 1, 0] } },
+          availableCopies: { $sum: { $cond: [{ $eq: ["$status", "AVAILABLE"] }, 1, 0] } }
+        }
+      }
+    ])
+  ]);
   
   const inventoryMap = {};
-  inventories.forEach(inv => {
-    inventoryMap[inv.bookId.toString()] = inv;
-  });
+  inventories.forEach(inv => { inventoryMap[inv.bookId.toString()] = inv; });
+  
+  const copiesMap = {};
+  copiesAgg.forEach(c => { copiesMap[c._id.toString()] = c; });
 
   const booksWithInventory = books.map(book => {
-    const inv = inventoryMap[book._id.toString()];
+    const idStr = book._id.toString();
+    const inv = inventoryMap[idStr];
+    const cop = copiesMap[idStr];
+    
+    // Use Inventory if it exists and has totalCopies > 0, else fallback to BookCopy aggregation
+    const useInv = inv && inv.totalCopies > 0;
+    
     return {
       ...book,
-      totalCopies: inv ? inv.totalCopies : 0,
-      issuedCopies: inv ? inv.issuedCopies : 0,
-      availableCopies: inv ? inv.availableCopies : 0
+      totalCopies: useInv ? inv.totalCopies : (cop ? cop.totalCopies : 0),
+      issuedCopies: useInv ? inv.issuedCopies : (cop ? cop.issuedCopies : 0),
+      availableCopies: useInv ? inv.availableCopies : (cop ? cop.availableCopies : 0)
     };
   });
 

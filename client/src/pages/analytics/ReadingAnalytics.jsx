@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { BookOpen, CheckCircle, Percent, Trophy } from 'lucide-react';
 
 const ReadingAnalytics = () => {
   const [data, setData] = useState(null);
@@ -36,23 +37,39 @@ const ReadingAnalytics = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Total Issues</p>
+          <div className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-md border border-blue-100 dark:border-blue-800/30 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-blue-600 transition-colors">Total Issues</p>
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg text-blue-600 dark:text-blue-400"><BookOpen size={20} /></div>
+            </div>
             <h2 className="text-4xl font-black text-blue-600 dark:text-blue-400">{data.totalIssues}</h2>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Total Returns</p>
+          
+          <div className="bg-gradient-to-br from-green-50 to-white dark:from-green-900/20 dark:to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-md border border-green-100 dark:border-green-800/30 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-green-600 transition-colors">Total Returns</p>
+              <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg text-green-600 dark:text-green-400"><CheckCircle size={20} /></div>
+            </div>
             <h2 className="text-4xl font-black text-green-600 dark:text-green-400">{data.totalReturns}</h2>
           </div>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Completion Rate</p>
+          
+          <div className="bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-md border border-purple-100 dark:border-purple-800/30 transition-all duration-300 hover:-translate-y-1 group">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider group-hover:text-purple-600 transition-colors">Completion Rate</p>
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg text-purple-600 dark:text-purple-400"><Percent size={20} /></div>
+            </div>
             <h2 className="text-4xl font-black text-purple-600 dark:text-purple-400">{data.completionRate}%</h2>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">🏆 Top 10 Readers Leaderboard</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/80">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg mr-3 text-yellow-600 dark:text-yellow-500">
+                <Trophy size={20} />
+              </div>
+              Top 10 Readers Leaderboard
+            </h3>
           </div>
           <div className="p-0">
             {data.topReaders && data.topReaders.length > 0 ? (

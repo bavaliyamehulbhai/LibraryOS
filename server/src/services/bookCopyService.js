@@ -3,6 +3,7 @@ const CopyMovement = require("../models/CopyMovement");
 const AuditLog = require("../models/AuditLog");
 const { generateCopyCode, generateBulkCopyCodes } = require("./copyCodeService");
 const inventoryService = require("./inventoryService");
+const Shelf = require("../models/Shelf");
 
 const recordMovement = async (data) => {
   const movement = new CopyMovement(data);
@@ -163,6 +164,12 @@ const markLost = async (copyId, libraryId, userId, remarks) => {
   }
 
   copy.status = "LOST";
+  
+  if (copy.shelfId) {
+    await Shelf.findByIdAndUpdate(copy.shelfId, { $inc: { occupiedSlots: -1 } });
+    copy.shelfId = null;
+  }
+  
   await copy.save();
 
   await recordMovement({
@@ -192,6 +199,12 @@ const markDamaged = async (copyId, libraryId, userId, remarks) => {
 
   copy.status = "DAMAGED";
   copy.condition = "DAMAGED";
+  
+  if (copy.shelfId) {
+    await Shelf.findByIdAndUpdate(copy.shelfId, { $inc: { occupiedSlots: -1 } });
+    copy.shelfId = null;
+  }
+  
   await copy.save();
 
   await recordMovement({
@@ -212,6 +225,13 @@ const markDamaged = async (copyId, libraryId, userId, remarks) => {
 const assignShelf = async (copyId, libraryId, shelfId, userId) => {
   const copy = await BookCopy.findOne({ _id: copyId, libraryId });
   if (!copy) throw new Error("Copy not found");
+
+  if (copy.shelfId && copy.shelfId.toString() !== shelfId.toString()) {
+    await Shelf.findByIdAndUpdate(copy.shelfId, { $inc: { occupiedSlots: -1 } });
+  }
+  if (!copy.shelfId || copy.shelfId.toString() !== shelfId.toString()) {
+    await Shelf.findByIdAndUpdate(shelfId, { $inc: { occupiedSlots: 1 } });
+  }
 
   copy.shelfId = shelfId;
   await copy.save();

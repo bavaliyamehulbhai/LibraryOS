@@ -26,19 +26,21 @@ const IssueHistory = () => {
   }, []);
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-[#0f1117] dark:to-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Circulation History</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+              <span className="mr-3">⏱️</span> Circulation History
+            </h1>
             <p className="text-gray-500 mt-2 dark:text-gray-400">View recently issued books and active checkouts.</p>
           </div>
-          <Link to="/issues/new" className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center font-medium shadow-sm">
+          <Link to="/issues/new" className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center">
             <span className="mr-2">📖</span> Issue Book
           </Link>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800/80 rounded-3xl shadow-xl border border-white/50 dark:border-gray-700/50 overflow-hidden">
           {loading ? (
             <div className="p-12 flex justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

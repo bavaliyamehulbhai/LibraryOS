@@ -4,7 +4,9 @@ import {
   generateBulkQR,
   scanQR,
   getQRStats,
-  getPublicQRData
+  getPublicQRData,
+  selfCheckoutQR,
+  selfReturnQR
 } from "../services/qrService";
 
 export const useQRStats = () => useQuery({ queryKey: ["qrStats"], queryFn: getQRStats });
@@ -39,6 +41,32 @@ export const useScanQR = () => {
       qc.invalidateQueries({ queryKey: ["qrStats"] });
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["copies"] });
+    }
+  });
+};
+
+export const useSelfCheckoutQR = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: selfCheckoutQR,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["qrStats"] });
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["copies"] });
+      qc.invalidateQueries({ queryKey: ["activeTransactions"] });
+    }
+  });
+};
+
+export const useSelfReturnQR = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: selfReturnQR,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["qrStats"] });
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["copies"] });
+      qc.invalidateQueries({ queryKey: ["activeTransactions"] });
     }
   });
 };

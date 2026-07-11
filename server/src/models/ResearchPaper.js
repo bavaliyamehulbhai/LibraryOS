@@ -14,6 +14,11 @@ const researchPaperSchema = new mongoose.Schema(
     },
     doi: { type: String }, // e.g., 10.1000/xyz123
     department: { type: String, required: true },
+    publisher: { type: String }, // e.g., IEEE, Nature, Springer
+    externalLinks: [{
+      platform: { type: String }, // e.g., "Google Scholar", "LMS Canvas"
+      url: { type: String }
+    }],
     fileUrl: { type: String, required: true }, // External link to PDF
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     libraryId: { type: mongoose.Schema.Types.ObjectId, ref: "Library", required: true },
@@ -22,6 +27,7 @@ const researchPaperSchema = new mongoose.Schema(
       enum: ["DRAFT", "UNDER_REVIEW", "PUBLISHED", "ARCHIVED"], 
       default: "PUBLISHED" // Auto-publish for demo purposes
     },
+    citations: { type: Number, default: 0 },
     downloads: { type: Number, default: 0 },
     views: { type: Number, default: 0 }
   },

@@ -140,6 +140,16 @@ const userSchema = new mongoose.Schema(
   providerId: {
     type: String,
     default: null
+  },
+
+  isBlocked: {
+    type: Boolean,
+    default: false
+  },
+
+  blockReason: {
+    type: String,
+    default: null
   }
 
 },

@@ -35,12 +35,13 @@ exports.reserveBook = async (libraryId, memberId, bookId, userId) => {
     throw new Error(`Reservation limit reached (${resLimit})`);
   }
 
-  // 4. Check if book has available copies. If so, member should just issue it instead of reserving.
+  // 4. Check if book has available copies.
   const book = await Book.findOne({ _id: bookId, libraryId });
   if (!book) throw new Error("Book not found");
-  if (book.availableCopies > 0) {
-    throw new Error("Book is currently available. Please issue directly instead of reserving.");
-  }
+  // Allow members to reserve available books (Hold Requests)
+  // if (book.availableCopies > 0) {
+  //   throw new Error("Book is currently available. Please issue directly instead of reserving.");
+  // }
 
   // 5. Calculate Queue Position
   const lastReservation = await Reservation.findOne({ bookId, libraryId, status: "PENDING" }).sort({ queuePosition: -1 });

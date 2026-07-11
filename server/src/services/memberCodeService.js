@@ -4,9 +4,8 @@ exports.generateMemberCode = async (libraryId) => {
   const currentYear = new Date().getFullYear();
   const prefix = `LIB-${currentYear}-`;
 
-  // Find the highest member code for this library and year
+  // Find the highest member code globally for this year to prevent E11000 dup key errors
   const lastMember = await Member.findOne({ 
-    libraryId, 
     memberCode: { $regex: `^${prefix}` } 
   }).sort({ memberCode: -1 });
 

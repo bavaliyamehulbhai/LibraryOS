@@ -79,10 +79,10 @@ const Register = () => {
           />
           <button
             type="button"
-            className="absolute right-3 top-9 text-gray-500"
+            className="absolute right-3 top-8 text-gray-400 hover:text-gray-500"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? <FiEyeOff /> : <FiEye />}
+            {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
           </button>
         </div>
 
@@ -97,12 +97,12 @@ const Register = () => {
         />
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Library
           </label>
           <select
-            className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-              errors.libraryId ? 'border-red-300' : 'border-gray-300'
+            className={`appearance-none block w-full px-3 py-2.5 border rounded-lg shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 dark:focus:ring-indigo-500/50 dark:focus:border-indigo-500 transition-colors duration-200 sm:text-sm ${
+              errors.libraryId ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
             }`}
             {...register("libraryId", { required: "Library is required" })}
           >
@@ -112,17 +112,17 @@ const Register = () => {
             ))}
           </select>
           {errors.libraryId && (
-            <p className="mt-2 text-sm text-red-600">{errors.libraryId.message}</p>
+            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.libraryId.message}</p>
           )}
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Role
           </label>
           <select
-            className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-              errors.role ? 'border-red-300' : 'border-gray-300'
+            className={`appearance-none block w-full px-3 py-2.5 border rounded-lg shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 dark:focus:ring-indigo-500/50 dark:focus:border-indigo-500 transition-colors duration-200 sm:text-sm ${
+              errors.role ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
             }`}
             {...register("role", { required: "Role is required" })}
           >
@@ -132,24 +132,24 @@ const Register = () => {
             <option value="STUDENT">STUDENT</option>
           </select>
           {errors.role && (
-            <p className="mt-2 text-sm text-red-600">{errors.role.message}</p>
+            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.role.message}</p>
           )}
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400"
+          className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-[10px] shadow-sm text-sm font-semibold text-white dark:text-black bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 transition-colors mt-6"
         >
-          {loading ? "Registering..." : "Register"}
+          {loading ? "Registering..." : "Create Account"}
         </button>
       </form>
 
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
+      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-center">
+        <p className="text-[13px] text-gray-500 dark:text-gray-400">
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-            Login
+          <Link to="/login" className="font-semibold text-black dark:text-white hover:underline transition-all">
+            Sign in
           </Link>
         </p>
       </div>

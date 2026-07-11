@@ -10,6 +10,7 @@ router.put("/read-all", notificationController.markAllAsRead);
 router.put("/:id/read", notificationController.markAsRead);
 
 // Admin bulk announcements
+router.get("/bulk", notificationController.getGlobalAnnouncements);
 router.post("/bulk", notificationController.sendBulkAnnouncement);
 
 // Notification templates

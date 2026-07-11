@@ -52,7 +52,7 @@ const RealtimeFeed = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-[#0f1117] dark:to-gray-900 min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 flex justify-between items-end">
           <div>
@@ -66,7 +66,7 @@ const RealtimeFeed = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden relative">
+        <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800 rounded-3xl shadow-lg border border-white/50 dark:border-gray-700 overflow-hidden relative">
           
           {loading && feed.length === 0 ? (
             <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div></div>
@@ -75,27 +75,28 @@ const RealtimeFeed = () => {
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[70vh] overflow-y-auto p-4">
               {feed.map((item, index) => (
-                <div key={item._id} className="py-4 flex gap-4 items-start group">
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-xl shadow-inner">
+                <div key={item._id} className="py-6 flex gap-4 items-start group relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/10 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                  <div className="flex flex-col items-center relative z-10 pl-2">
+                    <div className="w-12 h-12 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-xl shadow-md border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform">
                       {getActionIcon(item.action)}
                     </div>
-                    {index !== feed.length - 1 && <div className="w-0.5 h-12 bg-gray-100 dark:bg-gray-700 mt-2"></div>}
+                    {index !== feed.length - 1 && <div className="w-1 h-14 bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-800 mt-2 rounded-full"></div>}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 relative z-10 pt-1">
                     <div className="flex justify-between items-start">
-                      <p className="font-bold text-gray-900 dark:text-white">
+                      <p className="font-extrabold text-gray-900 dark:text-white text-lg">
                         {item.member}
                       </p>
-                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                      <span className="text-xs font-bold text-gray-400 bg-white/50 dark:bg-gray-800/50 px-2 py-1 rounded-lg border border-gray-100 dark:border-gray-700">
                         {new Date(item.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${getActionColor(item.action)}`}>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider shadow-sm ${getActionColor(item.action)}`}>
                         {(item.action || 'UNKNOWN').replace('_', ' ')}
                       </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                         {item.details}
                       </span>
                     </div>

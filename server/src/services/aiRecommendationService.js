@@ -19,7 +19,7 @@ exports.getTrendingBooks = async (libraryId) => {
   ]);
 
   // Map to books (In a real scenario, we'd lookup Book from BookCopy, simplifying here)
-  return Book.find({ libraryId }).limit(10);
+  return Book.find({ libraryId }).populate("author", "name").limit(10);
 };
 
 exports.getSimilarBooks = async (libraryId, bookId) => {
@@ -50,7 +50,7 @@ exports.getPersonalizedRecommendations = async (libraryId, memberId) => {
       { categories: { $in: profile.categories } },
       { author: { $in: profile.favoriteAuthors } }
     ]
-  }).limit(5);
+  }).populate("author", "name").limit(5);
 };
 
 exports.generateAIInsights = async (libraryId, memberId) => {

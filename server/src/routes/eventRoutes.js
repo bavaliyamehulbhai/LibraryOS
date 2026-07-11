@@ -9,6 +9,7 @@ router.use(authMiddleware);
 
 // Public (Member) Routes
 router.get("/", checkPermission([PERMISSIONS.EVENT_VIEW]), eventController.getEvents);
+router.get("/my-registrations", checkPermission([PERMISSIONS.EVENT_VIEW]), eventController.getMyRegistrations);
 router.post("/:id/register", checkPermission([PERMISSIONS.EVENT_VIEW]), eventController.registerForEvent);
 
 // Admin Routes

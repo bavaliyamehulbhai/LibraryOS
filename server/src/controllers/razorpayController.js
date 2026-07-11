@@ -5,6 +5,7 @@ const Fine = require("../models/Fine");
 const Payment = require("../models/Payment");
 const razorpay = require("../config/razorpay");
 const crypto = require("crypto");
+const fs = require("fs");
 
 exports.createFineOrder = async (req, res) => {
   try {
@@ -79,24 +80,20 @@ exports.verifyFinePayment = async (req, res) => {
 
 exports.createSubscription = async (req, res) => {
   try {
-    const { planId, libraryId } = req.body;
+    const { planId, libraryId, couponCode } = req.body;
     const targetLibraryId = libraryId || (req.user && req.user.libraryId);
     if (!targetLibraryId) throw new Error("Library ID is missing. Cannot process subscription.");
-    
-    // MOCK BYPASS: Immediately upgrade the plan in the database
-    const Plan = require("../models/Plan");
-    const plan = await Plan.findById(planId);
-    if(!plan) throw new Error("Plan not found");
 
-    const subscriptionService = require("../services/subscriptionService");
-    await subscriptionService.upgradePlan(targetLibraryId, plan.planCode);
+    if (!razorpay) {
+      throw new Error("Razorpay is not configured properly. Please check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env");
+    }
+
+    // Razorpay is configured, create the actual subscription
+    const subscriptionData = await rzpService.createSubscription(targetLibraryId, planId, couponCode);
 
     res.status(200).json({
       success: true,
-      data: {
-        mockBypass: true,
-        planName: plan.planName
-      }
+      data: subscriptionData
     });
   } catch (error) {
     const errorMsg = error.error?.description || error.message || JSON.stringify(error) || "Failed to initialize subscription";
@@ -107,11 +104,13 @@ exports.createSubscription = async (req, res) => {
 
 exports.verifyPayment = async (req, res) => {
   try {
-    const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature, planId, libraryId } = req.body;
+    const { razorpay_payment_id, razorpay_order_id, razorpay_subscription_id, razorpay_signature, planId, libraryId } = req.body;
     const targetLibraryId = libraryId || req.user.libraryId;
     if (!targetLibraryId) throw new Error("Library ID is missing.");
     
-    const isValid = rzpService.verifyPayment(razorpay_payment_id, razorpay_subscription_id, razorpay_signature);
+    // We switched to using Orders, so verify with order_id. Fallback to subscription_id if provided.
+    const referenceId = razorpay_order_id || razorpay_subscription_id;
+    const isValid = rzpService.verifyPayment(razorpay_payment_id, referenceId, razorpay_signature);
     
     if (!isValid) {
       return res.status(400).json({ success: false, message: "Invalid payment signature" });

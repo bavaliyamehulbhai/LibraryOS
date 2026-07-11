@@ -47,6 +47,14 @@ exports.getDashboardAnalytics = async (libraryId) => {
   ]);
   const pendingFines = fineAgg[0]?.total || 0;
 
+  // Get total revenue (Payments)
+  const Payment = require("../models/Payment");
+  const revenueAgg = await Payment.aggregate([
+    { $match: { libraryId: libId, status: "SUCCESS" } },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]);
+  const totalRevenue = revenueAgg[0]?.total || 0;
+
   return {
     totalBooks,
     totalCopies: inv.totalCopies,
@@ -56,7 +64,8 @@ exports.getDashboardAnalytics = async (libraryId) => {
     activeMembers,
     totalReturned,
     overdueCount,
-    pendingFines
+    pendingFines,
+    totalRevenue
   };
 };
 
@@ -112,17 +121,206 @@ exports.getInventoryAnalytics = async (libraryId) => {
   return { lowStock, copyStats };
 };
 
-exports.getTrendAnalytics = async (libraryId) => {
-  const snapshots = await AnalyticsSnapshot.find({ libraryId })
-    .sort({ date: 1 })
-    .limit(30);
+exports.getReadingAnalytics = async (libraryId) => {
+  const Transaction = require("../models/Transaction");
+  let libId;
+  try {
+    libId = new mongoose.Types.ObjectId(libraryId.toString());
+  } catch (e) {
+    libId = libraryId;
+  }
+  
+  const [totalIssues, totalReturns] = await Promise.all([
+    Transaction.countDocuments({ libraryId: libId, status: { $in: ["ISSUED", "RENEWED", "RETURNED", "OVERDUE", "LOST"] } }),
+    Transaction.countDocuments({ libraryId: libId, status: "RETURNED" })
+  ]);
+  
+  const completionRate = totalIssues > 0 ? Math.round((totalReturns / totalIssues) * 100) : 0;
+  
+  const topReaders = await Transaction.aggregate([
+    { $match: { libraryId: libId } },
+    { $group: { _id: "$memberId", borrowCount: { $sum: 1 } } },
+    { $sort: { borrowCount: -1 } },
+    { $limit: 10 },
+    { $addFields: { 
+        memberObjectId: { 
+          $convert: { input: "$_id", to: "objectId", onError: null, onNull: null } 
+        } 
+    }},
+    { $lookup: { from: "members", localField: "memberObjectId", foreignField: "_id", as: "member" } },
+    { $unwind: { path: "$member", preserveNullAndEmptyArrays: true } },
+    { $project: {
+        _id: 1,
+        name: { 
+          $cond: { 
+            if: { $and: ["$member.firstName", "$member.lastName"] }, 
+            then: { $concat: ["$member.firstName", " ", "$member.lastName"] },
+            else: { $ifNull: ["$member.firstName", "Unknown Reader"] }
+          }
+        },
+        memberCode: { $ifNull: ["$member.memberCode", "N/A"] },
+        borrowCount: 1
+    }}
+  ]);
+  
+  return { totalIssues, totalReturns, completionRate, topReaders };
+};
+
+exports.getRiskAnalytics = async (libraryId) => {
+  const Fine = require("../models/Fine");
+  let libId;
+  try {
+    libId = new mongoose.Types.ObjectId(libraryId.toString());
+  } catch (e) {
+    libId = libraryId;
+  }
+  
+  const totalOutstandingAgg = await Fine.aggregate([
+    { $match: { libraryId: libId, status: "UNPAID" } },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]);
+  const totalOutstandingAmount = totalOutstandingAgg.length > 0 ? totalOutstandingAgg[0].total : 0;
+  
+  const fineRisks = await Fine.aggregate([
+    { $match: { libraryId: libId, status: "UNPAID" } },
+    { $group: { _id: "$memberId", totalUnpaid: { $sum: "$amount" }, fineCount: { $sum: 1 } } },
+    { $sort: { totalUnpaid: -1 } },
+    { $limit: 10 },
+    { $addFields: { 
+        memberObjectId: { 
+          $convert: { input: "$_id", to: "objectId", onError: null, onNull: null } 
+        } 
+    }},
+    { $lookup: { from: "members", localField: "memberObjectId", foreignField: "_id", as: "member" } },
+    { $unwind: { path: "$member", preserveNullAndEmptyArrays: true } },
+    { $project: {
+        _id: 1,
+        name: { 
+          $cond: { 
+            if: { $and: ["$member.firstName", "$member.lastName"] }, 
+            then: { $concat: ["$member.firstName", " ", "$member.lastName"] },
+            else: { $ifNull: ["$member.firstName", "Unknown Reader"] }
+          }
+        },
+        email: { $ifNull: ["$member.email", "No Email"] },
+        fineCount: 1,
+        totalUnpaid: 1
+    }}
+  ]);
+  
+  return { totalOutstandingAmount, fineRisks };
+};
+
+exports.getTrendAnalytics = async (libraryId, days = 30) => {
+  const Member = require("../models/Member");
+  const Transaction = require("../models/Transaction");
+  const Payment = require("../models/Payment");
+  const libId = new mongoose.Types.ObjectId(libraryId.toString());
+
+  const result = [];
+  
+  for (let i = 5; i >= 0; i--) {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - i);
+    startDate.setDate(1);
+    startDate.setHours(0,0,0,0);
     
-  return snapshots.map(s => ({
-    date: s.date.toISOString().split("T")[0],
-    totalBooks: s.totalBooks,
-    issuedBooks: s.issuedBooks,
-    activeUsers: s.activeUsers
-  }));
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+    
+    const monthName = startDate.toLocaleString('default', { month: 'short' });
+    
+    const [revenueAgg, activeUsers, transactions] = await Promise.all([
+      Payment.aggregate([
+        { $match: { libraryId: libId, status: "SUCCESS", createdAt: { $gte: startDate, $lt: endDate } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+      Member.countDocuments({ libraryId: libId, createdAt: { $lt: endDate } }),
+      Transaction.countDocuments({ libraryId: libId, createdAt: { $gte: startDate, $lt: endDate } })
+    ]);
+    
+    result.push({
+      name: monthName,
+      revenue: revenueAgg.length > 0 ? revenueAgg[0].total : 0,
+      activeUsers: activeUsers,
+      libraries: transactions // Tracking transactions volume instead of libraries
+    });
+  }
+
+  return result;
+};
+
+exports.getHealthAnalytics = async (libraryId) => {
+  const Member = require("../models/Member");
+  const Transaction = require("../models/Transaction");
+  const libId = new mongoose.Types.ObjectId(libraryId.toString());
+
+  const [totalMembers, activeMembers, blockedMembers, totalTransactions, overdueTransactions] = await Promise.all([
+    Member.countDocuments({ libraryId: libId }),
+    Member.countDocuments({ libraryId: libId, status: "ACTIVE" }),
+    Member.countDocuments({ libraryId: libId, status: "BLOCKED" }),
+    Transaction.countDocuments({ libraryId: libId }),
+    Transaction.countDocuments({ libraryId: libId, status: "OVERDUE" })
+  ]);
+
+  const activeRatio = totalMembers > 0 ? (activeMembers / totalMembers) * 100 : 0;
+  let healthScore = 100;
+  
+  if (activeRatio < 50) healthScore -= 20;
+  else if (activeRatio < 70) healthScore -= 10;
+  
+  if (totalMembers > 0 && (blockedMembers / totalMembers) * 100 > 5) healthScore -= 15;
+  if (totalTransactions > 0 && (overdueTransactions / totalTransactions) * 100 > 10) healthScore -= 15;
+
+  return {
+    score: Math.max(0, healthScore),
+    status: healthScore >= 80 ? "Healthy" : healthScore >= 60 ? "Warning" : "Critical",
+    metrics: { activeRatio: Math.round(activeRatio), blockedMembers, overdueTransactions }
+  };
+};
+
+exports.getChurnAnalytics = async (libraryId) => {
+  const Member = require("../models/Member");
+  const libId = new mongoose.Types.ObjectId(libraryId.toString());
+  const sixtyDaysAgo = new Date(Date.now() - 60*24*60*60*1000);
+  
+  const [totalMembers, inactiveMembers] = await Promise.all([
+    Member.countDocuments({ libraryId: libId }),
+    Member.countDocuments({ libraryId: libId, updatedAt: { $lt: sixtyDaysAgo }, status: { $ne: "BLOCKED" } })
+  ]);
+  
+  const churnRisk = totalMembers > 0 ? Math.round((inactiveMembers / totalMembers) * 100) : 0;
+
+  return {
+    churnRisk,
+    inactiveMembers,
+    totalMembers,
+    riskLevel: churnRisk > 20 ? "High" : churnRisk > 10 ? "Medium" : "Low"
+  };
+};
+
+exports.getInsights = async (libraryId) => {
+  const Transaction = require("../models/Transaction");
+  const libId = new mongoose.Types.ObjectId(libraryId.toString());
+  const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000);
+  
+  const recentBorrowings = await Transaction.countDocuments({ libraryId: libId, createdAt: { $gte: thirtyDaysAgo } });
+
+  const insights = [];
+  if (recentBorrowings > 0) {
+    insights.push({
+      type: "positive",
+      title: "Active Borrowing",
+      description: `Library has recorded ${recentBorrowings} transactions in the last 30 days.`
+    });
+  } else {
+    insights.push({
+      type: "warning",
+      title: "Low Engagement",
+      description: "No borrowing activity detected in the last 30 days. Consider promoting popular books."
+    });
+  }
+  return insights;
 };
 
 exports.getExecutiveReport = async (libraryId) => {

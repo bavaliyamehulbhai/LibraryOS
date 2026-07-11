@@ -23,7 +23,15 @@ const librarySchema = new mongoose.Schema({
     enum: [ACTIVE, TRIAL, SUSPENDED, EXPIRED],
     default: TRIAL
   },
-  trialEndsAt: { type: Date }
+  trialEndsAt: { type: Date },
+  
+  // Automation Settings
+  automationSettings: {
+    dailyFineAmount: { type: Number, default: 5 }, // Default ₹5 per day
+    maxFineLimit: { type: Number, default: 100 }, // Default max limit ₹100 before block
+    enableEmailReminders: { type: Boolean, default: true },
+    enableAutoBlock: { type: Boolean, default: true }
+  }
 }, { timestamps: true });
 
 librarySchema.virtual("libraryAge").get(function() {
