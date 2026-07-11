@@ -7,7 +7,14 @@ const BookCopy = require("../models/BookCopy");
 exports.getCopyByBarcode = async (req, res) => {
   try {
     const { barcode } = req.params;
-    const copy = await BookCopy.findOne({ barcode, libraryId: req.user.libraryId })
+    
+    // Build query to allow Super Admin to find books across all libraries
+    const query = { $or: [{ barcode }, { copyCode: barcode }] };
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'SYSTEM_ADMIN') {
+      query.libraryId = req.user.libraryId;
+    }
+
+    const copy = await BookCopy.findOne(query)
       .populate("bookId", "title isbn coverImage price authors")
       .populate("branchId", "name");
     if (!copy) return res.status(404).json({ success: false, message: "No book copy found with this barcode" });

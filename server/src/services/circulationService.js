@@ -6,19 +6,21 @@ const Fine = require("../models/Fine");
 const MembershipPlan = require("../models/MembershipPlan");
 
 exports.issueBook = async (libraryId, memberId, bookCopyId, issuedBy) => {
-  const member = await Member.findOne({ _id: memberId, libraryId });
+  const member = await Member.findById(memberId);
   if (!member) throw new Error("Member not found");
+
+  const effectiveLibraryId = member.libraryId || libraryId;
 
   if (member.status === "BLOCKED" || member.status === "SUSPENDED") throw new Error(`Member is currently ${member.status.toLowerCase()}`);
 
-  const plan = await MembershipPlan.findOne({ _id: member.membershipPlanId, libraryId });
+  const plan = await MembershipPlan.findById(member.membershipPlanId);
   if (!plan) throw new Error("Member does not have an active membership plan assigned. Please assign a plan first.");
 
   if (member.activeCheckouts >= plan.borrowLimit) {
     throw new Error(`Borrowing limit reached. Maximum allowed: ${plan.borrowLimit}`);
   }
 
-  const copy = await BookCopy.findOne({ _id: bookCopyId, libraryId }).populate('bookId');
+  const copy = await BookCopy.findById(bookCopyId).populate('bookId');
   if (!copy) throw new Error("Book copy not found");
   if (copy.status !== "AVAILABLE") throw new Error(`Book copy is currently ${copy.status}. Only AVAILABLE copies can be issued.`);
 
@@ -33,7 +35,7 @@ exports.issueBook = async (libraryId, memberId, bookCopyId, issuedBy) => {
 
   // Create Transaction
   const transaction = await Transaction.create({
-    libraryId,
+    libraryId: effectiveLibraryId,
     memberId,
     bookId: copy.bookId ? copy.bookId._id : copy.bookId,
     bookCopyId,
@@ -58,7 +60,7 @@ exports.issueBook = async (libraryId, memberId, bookCopyId, issuedBy) => {
   const bookDetails = await Book.findById(copy.bookId._id || copy.bookId);
   if (bookDetails) {
     await UserReadingProfile.findOneAndUpdate(
-      { libraryId, memberId },
+      { libraryId: effectiveLibraryId, memberId },
       {
         $addToSet: { 
           categories: { $each: bookDetails.categories || [] },
