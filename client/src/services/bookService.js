@@ -29,3 +29,8 @@ export const getIsbnStats = async () => {
   const response = await api.get("/v1/books/isbn-stats");
   return response.data;
 };
+
+export const fetchExternalIsbn = async (isbn) => {
+  const response = await api.get(`/v1/books/external-isbn/${isbn}`);
+  return response.data;
+};

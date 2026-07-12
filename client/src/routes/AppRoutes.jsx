@@ -193,7 +193,6 @@ const AppRoutes = () => {
           <Route path="setup-wizard" element={<SetupWizard />} />
           <Route path="plans" element={<Plans />} />
           <Route path="checkout" element={<SubscriptionCheckout />} />
-          <Route path="books" element={<Books />} />
           <Route path="users" element={<Users />} />
           <Route path="branches" element={<RoleRoute allowedRoles={["SUPER_ADMIN", "LIBRARY_ADMIN"]}><BranchSettings /></RoleRoute>} />
           <Route path="analytics" element={<RoleRoute allowedRoles={["SUPER_ADMIN", "LIBRARY_ADMIN"]}><AnalyticsOverview /></RoleRoute>} />

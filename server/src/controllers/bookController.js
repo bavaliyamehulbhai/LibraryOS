@@ -5,6 +5,30 @@ const { checkDuplicateISBN } = require("../services/isbnService");
 const Book = require("../models/Book");
 const AuditLog = require("../models/AuditLog");
 const usageTrackingService = require("../services/usageTrackingService");
+const mongoose = require("mongoose");
+const Author = require("../models/Author");
+const Publisher = require("../models/Publisher");
+const Category = require("../models/Category");
+
+const escapeRegex = (text) => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
+const resolveEntity = async (Model, name, libraryId) => {
+  if (!name) return null;
+  // If it's a valid hex string ObjectId
+  if (/^[0-9a-fA-F]{24}$/.test(name)) {
+    const existingById = await Model.findById(name);
+    if (existingById) return existingById._id;
+  }
+  const safeName = escapeRegex(name);
+  const regex = new RegExp(`^${safeName}$`, "i");
+  let entity = await Model.findOne({ name: regex, libraryId });
+  if (!entity) {
+    entity = await Model.create({ name, libraryId });
+  }
+  return entity._id;
+};
 
 exports.createBook = async (req, res) => {
   try {
@@ -32,6 +56,28 @@ exports.createBook = async (req, res) => {
     }
 
     const bookData = { ...value, libraryId };
+
+    if (value.author) {
+      bookData.author = await resolveEntity(Author, value.author, libraryId);
+    }
+    if (value.publisher) {
+      bookData.publisher = await resolveEntity(Publisher, value.publisher, libraryId);
+    }
+    if (value.category) {
+      bookData.category = await resolveEntity(Category, value.category, libraryId);
+    }
+
+    // Failsafe: if they are still strings, delete them so they don't crash Book.create
+    if (bookData.author && !mongoose.Types.ObjectId.isValid(bookData.author)) {
+      delete bookData.author;
+    }
+    if (bookData.publisher && !mongoose.Types.ObjectId.isValid(bookData.publisher)) {
+      delete bookData.publisher;
+    }
+    if (bookData.category && !mongoose.Types.ObjectId.isValid(bookData.category)) {
+      delete bookData.category;
+    }
+
     const book = await bookService.createBook(bookData);
 
     // Auto-create global inventory record
@@ -88,6 +134,20 @@ exports.getBookByIsbn = async (req, res) => {
       return res.status(404).json({ success: false, message: "Book not found" });
     }
     res.status(200).json({ success: true, data: book });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.fetchExternalBookByIsbn = async (req, res) => {
+  try {
+    const { fetchBookByISBN } = require("../services/isbnService");
+    const bookData = await fetchBookByISBN(req.params.isbn);
+    
+    if (!bookData) {
+      return res.status(404).json({ success: false, message: "Book details not found online" });
+    }
+    res.status(200).json({ success: true, data: bookData });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

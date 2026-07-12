@@ -10,6 +10,7 @@ router.post("/", checkPermission("BOOK_CREATE"), bookController.createBook);
 router.get("/", checkPermission("BOOK_VIEW"), bookController.getBooks);
 router.get("/isbn-stats", checkPermission("BOOK_VIEW"), bookController.getIsbnStats);
 router.get("/isbn/:isbn", checkPermission("BOOK_VIEW"), bookController.getBookByIsbn);
+router.get("/external-isbn/:isbn", checkPermission("BOOK_CREATE"), bookController.fetchExternalBookByIsbn);
 router.get("/:id", checkPermission("BOOK_VIEW"), bookController.getBook);
 router.put("/:id", checkPermission("BOOK_UPDATE"), bookController.updateBook);
 router.delete("/:id", checkPermission("BOOK_DELETE"), bookController.deleteBook);

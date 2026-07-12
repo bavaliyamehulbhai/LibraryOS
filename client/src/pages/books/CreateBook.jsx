@@ -7,10 +7,11 @@ import { useAuthors } from "../../hooks/useAuthors";
 import { usePublishers } from "../../hooks/usePublishers";
 import { useISBNValidation } from "../../hooks/useISBNValidation";
 import toast from "react-hot-toast";
-import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Loader2, DownloadCloud } from "lucide-react";
+import { fetchExternalIsbn } from "../../services/bookService";
 
 const CreateBook = () => {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm();
   const { mutate: createBook, isPending } = useCreateBook();
   const { data: categoriesData } = useCategories({ limit: 100 });
   const { data: authorsData } = useAuthors({ limit: 100 });
@@ -18,8 +19,37 @@ const CreateBook = () => {
   
   const watchedIsbn = watch("isbn", "");
   const { isValid, isDuplicate, isLoading: checkingIsbn } = useISBNValidation(watchedIsbn);
+  const [isFetching, setIsFetching] = React.useState(false);
 
   const navigate = useNavigate();
+
+  const handleAutoFill = async () => {
+    if (!watchedIsbn) {
+      toast.error("Please enter an ISBN first");
+      return;
+    }
+    if (isValid === false) {
+      toast.error("Please enter a valid ISBN before auto-filling");
+      return;
+    }
+
+    try {
+      setIsFetching(true);
+      const res = await fetchExternalIsbn(watchedIsbn);
+      if (res.success && res.data) {
+        setValue("title", res.data.title || "");
+        setValue("description", res.data.description || "");
+        setValue("coverImage", res.data.cover || "");
+        setValue("pages", res.data.pages || "");
+        setValue("language", res.data.language || "en");
+        toast.success("Book details auto-filled successfully!");
+      }
+    } catch (error) {
+      toast.error("Failed to fetch book details. They might not exist online.");
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   const onSubmit = (data) => {
     if (isValid === false) {
@@ -72,7 +102,7 @@ const CreateBook = () => {
             </div>
 
             <div>
-              <div className="flex justify-between mb-1">
+              <div className="flex justify-between items-end mb-1">
                 <label className="block text-sm font-medium text-gray-700">ISBN *</label>
                 {watchedIsbn && (
                   <div className="text-xs font-medium flex items-center gap-1">
@@ -88,53 +118,73 @@ const CreateBook = () => {
                   </div>
                 )}
               </div>
-              <input 
-                {...register("isbn", { required: "ISBN is required" })}
-                className={`w-full px-3 py-2 border rounded-md focus:ring-2 outline-none transition ${
-                  watchedIsbn ? (isValid === false || isDuplicate ? "border-red-500 focus:ring-red-500" : isValid === true && !isDuplicate ? "border-green-500 focus:ring-green-500" : "focus:ring-blue-500") : "focus:ring-blue-500"
-                }`}
-                placeholder="9781847941831"
-              />
+              <div className="flex gap-2">
+                <input 
+                  {...register("isbn", { required: "ISBN is required" })}
+                  className={`flex-1 px-3 py-2 border rounded-md focus:ring-2 outline-none transition ${
+                    watchedIsbn ? (isValid === false || isDuplicate ? "border-red-500 focus:ring-red-500" : isValid === true && !isDuplicate ? "border-green-500 focus:ring-green-500" : "focus:ring-blue-500") : "focus:ring-blue-500"
+                  }`}
+                  placeholder="9781847941831"
+                />
+                <button
+                  type="button"
+                  onClick={handleAutoFill}
+                  disabled={isFetching || !watchedIsbn}
+                  className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition disabled:opacity-50 flex items-center gap-1 text-sm font-medium"
+                >
+                  {isFetching ? <Loader2 className="animate-spin" size={16} /> : <DownloadCloud size={16} />}
+                  Auto Fill
+                </button>
+              </div>
               {errors.isbn && <span className="text-red-500 text-xs">{errors.isbn.message}</span>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select 
+              <input 
                 {...register("category")}
+                list="category-options"
+                autoComplete="off"
+                placeholder="Type or select category..."
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-              >
-                <option value="">Select Category</option>
+              />
+              <datalist id="category-options">
                 {categoriesData?.data?.map(cat => (
-                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  <option key={cat._id} value={cat.name} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
-              <select 
+              <input 
                 {...register("author")}
+                list="author-options"
+                autoComplete="off"
+                placeholder="Type or select author..."
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-              >
-                <option value="">Select Author</option>
+              />
+              <datalist id="author-options">
                 {authorsData?.data?.map(author => (
-                  <option key={author._id} value={author._id}>{author.name}</option>
+                  <option key={author._id} value={author.name} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Publisher</label>
-              <select 
+              <input 
                 {...register("publisher")}
+                list="publisher-options"
+                autoComplete="off"
+                placeholder="Type or select publisher..."
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-              >
-                <option value="">Select Publisher</option>
+              />
+              <datalist id="publisher-options">
                 {publishersData?.data?.map(pub => (
-                  <option key={pub._id} value={pub._id}>{pub.name}</option>
+                  <option key={pub._id} value={pub.name} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             <div>

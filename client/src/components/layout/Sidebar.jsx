@@ -72,6 +72,7 @@ const Sidebar = () => {
       roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "MEMBER", "STUDENT"],
       children: [
         { name: "Global Search", path: "/search", icon: "🔍", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "MEMBER", "STUDENT"] },
+        { name: "Books", path: "/books", icon: "📖", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
         { name: "Search Catalog", path: "/member/catalog", icon: "🔍", roles: ["MEMBER", "STUDENT"] },
         { name: "Digital Library", path: "/digital-library", icon: "📱", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "MEMBER", "STUDENT"] },
         { name: "My Digital Content", path: "/digital-library/my-library", icon: "🗂️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "MEMBER", "STUDENT"] },

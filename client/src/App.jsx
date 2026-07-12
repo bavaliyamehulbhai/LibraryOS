@@ -52,6 +52,14 @@ import NotificationCenter from './pages/notifications/NotificationCenter';
 import AuditLogs from './pages/audit/AuditLogs';
 import Reports from './pages/reports/Reports';
 
+// Books & Catalog
+import Books from './pages/books/Books';
+import CreateBook from './pages/books/CreateBook';
+import EditBook from './pages/books/EditBook';
+import BookDetails from './pages/books/BookDetails';
+import BookGallery from './pages/books/BookGallery';
+import CoverManager from './pages/books/CoverManager';
+
 // Branch Analytics Pages
 import BranchOverview from './pages/branch-analytics/Overview';
 import BranchComparison from './pages/branch-analytics/Comparison';
@@ -266,6 +274,15 @@ function App() {
                   </RoleRoute>
                 } />
                 <Route path="/libraries" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Libraries /></RoleRoute>} />
+                
+                {/* Book & Catalog Routes */}
+                <Route path="/books" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN', 'ASSISTANT']}><Books /></RoleRoute>} />
+                <Route path="/books/gallery" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN', 'ASSISTANT']}><BookGallery /></RoleRoute>} />
+                <Route path="/books/cover-manager" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><CoverManager /></RoleRoute>} />
+                <Route path="/books/create" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><CreateBook /></RoleRoute>} />
+                <Route path="/books/edit/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><EditBook /></RoleRoute>} />
+                <Route path="/books/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><BookDetails /></RoleRoute>} />
+                
                 <Route path="/branches" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><Branches /></RoleRoute>} />
                 <Route path="/branches/transfer" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><TransferCenter /></RoleRoute>} />
                 <Route path="/branches/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><BranchDetails /></RoleRoute>} />

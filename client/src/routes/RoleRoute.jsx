@@ -1,8 +1,8 @@
 import { Navigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useAuth } from "../hooks/useAuth";
 
 const RoleRoute = ({ children, allowedRoles }) => {
-  const { user, loading } = useSelector((state) => state.auth);
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
