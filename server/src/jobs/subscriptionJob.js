@@ -1,14 +1,26 @@
 const { registerCron } = require("../services/jobManager");
+const Invoice = require("../models/Invoice");
 
 const processSubscriptions = async () => {
-  // Check Trial Ending (Notify 7 days, 3 days, 1 day before)
-  // Check Subscriptions Expiring
-  // Automatically suspend Library if Subscription Expired past grace period
-  // console.log("[Job] Processed Subscriptions successfully.");
+  try {
+    const now = new Date();
+    // Mark Overdue Invoices
+    const pendingInvoices = await Invoice.find({
+      status: "PENDING",
+      dueDate: { $lt: now }
+    });
+
+    for (let inv of pendingInvoices) {
+      inv.status = "OVERDUE";
+      await inv.save();
+    }
+  } catch (err) {
+    console.error("[SubscriptionJob] Error processing subscription/invoice dunning:", err.message);
+  }
 };
 
 const startSubscriptionJob = () => {
-  registerCron("0 1 * * *", "Daily Subscription Checks", processSubscriptions);
+  registerCron("0 1 * * *", "Daily Subscription & Invoice Checks", processSubscriptions);
 };
 
 module.exports = { startSubscriptionJob };

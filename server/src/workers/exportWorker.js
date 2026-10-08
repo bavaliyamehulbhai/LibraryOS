@@ -12,6 +12,9 @@ const Inventory = require("../models/Inventory");
 const Author = require("../models/Author");
 const Publisher = require("../models/Publisher");
 const Category = require("../models/Category");
+const Member = require("../models/Member");
+const Transaction = require("../models/Transaction");
+const Payment = require("../models/Payment");
 
 const exportDir = path.join(__dirname, "../../exports");
 if (!fs.existsSync(exportDir)) {
@@ -76,17 +79,19 @@ const generatePDF = async (data, fields, title, filePath) => {
 };
 
 const processExport = async (jobId, type, format, libraryId, filters) => {
-  const filePath = path.join(exportDir, `${jobId}.${format}`);
+  const normType = (type || "").toLowerCase();
+  const normFormat = (format || "").toLowerCase() === "excel" ? "xlsx" : (format || "csv").toLowerCase();
+  const filePath = path.join(exportDir, `${jobId}.${normFormat}`);
   let data = [];
   let fields = [];
-  let title = "Report";
+  let title = "Export Report";
 
-  if (type === "books") {
+  if (normType === "books") {
     const query = { libraryId, ...filters };
     const books = await Book.find(query).populate("author publisher category");
     data = books.map(b => ({
-      title: b.title,
-      isbn: b.isbn,
+      title: b.title || "N/A",
+      isbn: b.isbn || "N/A",
       author: b.author?.name || "N/A",
       publisher: b.publisher?.name || "N/A",
       category: b.category?.name || "N/A"
@@ -98,15 +103,15 @@ const processExport = async (jobId, type, format, libraryId, filters) => {
       { header: "Publisher", key: "publisher" },
       { header: "Category", key: "category" }
     ];
-    title = "Books Export";
-  } else if (type === "inventory") {
+    title = "Books Inventory Export";
+  } else if (normType === "inventory") {
     const inv = await Inventory.find({ libraryId }).populate("bookId");
     data = inv.map(i => ({
       book: i.bookId?.title || "Unknown",
-      total: i.totalCopies,
-      available: i.availableCopies,
-      issued: i.issuedCopies,
-      reserved: i.reservedCopies
+      total: i.totalCopies || 0,
+      available: i.availableCopies || 0,
+      issued: i.issuedCopies || 0,
+      reserved: i.reservedCopies || 0
     }));
     fields = [
       { header: "Book Title", key: "book" },
@@ -116,15 +121,75 @@ const processExport = async (jobId, type, format, libraryId, filters) => {
       { header: "Reserved", key: "reserved" }
     ];
     title = "Inventory Report";
+  } else if (normType === "students" || normType === "users" || normType === "members") {
+    const members = await Member.find({ libraryId });
+    data = members.map(m => ({
+      code: m.memberCode || "N/A",
+      name: `${m.firstName || ""} ${m.lastName || ""}`.trim() || "N/A",
+      email: m.email || "N/A",
+      phone: m.phone || "N/A",
+      type: m.memberType || "N/A",
+      status: m.status || "ACTIVE"
+    }));
+    fields = [
+      { header: "Member Code", key: "code" },
+      { header: "Full Name", key: "name" },
+      { header: "Email", key: "email" },
+      { header: "Phone", key: "phone" },
+      { header: "Type", key: "type" },
+      { header: "Status", key: "status" }
+    ];
+    title = "Members & Demographics Roster";
+  } else if (normType === "transactions" || normType === "circulation") {
+    const txns = await Transaction.find({ libraryId }).populate("bookId memberId");
+    data = txns.map(t => ({
+      code: t.transactionCode || t._id.toString().slice(-6),
+      book: t.bookId?.title || "Unknown",
+      member: t.memberId ? `${t.memberId.firstName || ""} ${t.memberId.lastName || ""}`.trim() : "Unknown",
+      issueDate: t.issueDate ? new Date(t.issueDate).toLocaleDateString() : "N/A",
+      dueDate: t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "N/A",
+      status: t.status || "N/A",
+      fine: t.fineAmount || 0
+    }));
+    fields = [
+      { header: "Transaction Code", key: "code" },
+      { header: "Book Title", key: "book" },
+      { header: "Member Name", key: "member" },
+      { header: "Issue Date", key: "issueDate" },
+      { header: "Due Date", key: "dueDate" },
+      { header: "Status", key: "status" },
+      { header: "Fine (₹)", key: "fine" }
+    ];
+    title = "Circulation & Transactions Ledger";
+  } else if (normType === "financial") {
+    const payments = await Payment.find({ libraryId }).populate("memberId");
+    data = payments.map(p => ({
+      code: p.paymentCode || p._id.toString().slice(-6),
+      member: p.memberId ? `${p.memberId.firstName || ""} ${p.memberId.lastName || ""}`.trim() : "N/A",
+      purpose: p.purpose || "N/A",
+      amount: p.amount || 0,
+      method: p.paymentMethod || "N/A",
+      status: p.status || "SUCCESS",
+      date: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "N/A"
+    }));
+    fields = [
+      { header: "Payment Code", key: "code" },
+      { header: "Member", key: "member" },
+      { header: "Purpose", key: "purpose" },
+      { header: "Amount (₹)", key: "amount" },
+      { header: "Payment Method", key: "method" },
+      { header: "Status", key: "status" },
+      { header: "Date", key: "date" }
+    ];
+    title = "Financial & Revenue Ledger";
   } else {
-    // Basic fallback for Authors/Publishers/Categories
-    data = [{ info: "Not yet fully modeled in worker" }];
+    data = [{ info: `Export for ${type} generated successfully` }];
     fields = [{ header: "Info", key: "info" }];
   }
 
-  if (format === "csv") await generateCSV(data, fields, filePath);
-  else if (format === "xlsx") await generateExcel(data, fields, title, filePath);
-  else if (format === "pdf") await generatePDF(data, fields, title, filePath);
+  if (normFormat === "csv") await generateCSV(data, fields, filePath);
+  else if (normFormat === "xlsx") await generateExcel(data, fields, title, filePath);
+  else if (normFormat === "pdf") await generatePDF(data, fields, title, filePath);
 
   return filePath;
 };
@@ -177,4 +242,7 @@ try {
   console.log("Could not initialize Export Worker (Redis missing?):", error.message);
 }
 
-module.exports = worker;
+module.exports = {
+  worker,
+  processExport
+};

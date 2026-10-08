@@ -27,7 +27,7 @@ const ArticleDetails = () => {
       }
     } catch (error) {
       toast.error('Article not found');
-      navigate('/help');
+      navigate('/help-center');
     } finally {
       setLoading(false);
     }

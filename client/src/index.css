@@ -3,15 +3,28 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --card-surface: rgba(255, 255, 255, 0.85);
+    --border-subtle: rgba(226, 232, 240, 0.8);
+    --primary-glow: rgba(99, 102, 241, 0.15);
+  }
+
+  .dark {
+    --card-surface: rgba(15, 23, 42, 0.85);
+    --border-subtle: rgba(51, 65, 85, 0.7);
+    --primary-glow: rgba(99, 102, 241, 0.25);
+  }
+
   body {
-    @apply bg-background text-slate-800 font-sans antialiased transition-colors duration-300;
+    @apply bg-slate-50 text-slate-800 font-sans antialiased transition-colors duration-200;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   
   .dark body {
-    @apply bg-slate-900 text-slate-100;
+    @apply bg-[#0b0f19] text-slate-100;
   }
 
-  /* Custom Scrollbar */
+  /* Custom Smooth Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -20,7 +33,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+    @apply bg-slate-300/80 dark:bg-slate-700/80 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-400 dark:bg-slate-600;
@@ -28,12 +41,63 @@
 }
 
 @layer utilities {
+  /* Modern Linear / Stripe Enterprise Glass Panel */
   .glass-panel {
-    @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50 shadow-xl;
+    background: var(--card-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
   }
   
+  .glass-card {
+    background-color: var(--card-surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-subtle);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-card:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 12px 32px -8px var(--primary-glow);
+    transform: translateY(-2px);
+  }
+
   .glass-nav {
-    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  .dark .glass-nav {
+    background: rgba(11, 15, 25, 0.85);
+    border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+  }
+
+  /* Linear-style subtle gradient border */
+  .linear-border {
+    position: relative;
+    border-radius: 0.75rem;
+  }
+  
+  .linear-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.1), transparent 60%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Premium Badge Glow */
+  .glow-badge {
+    box-shadow: 0 0 12px -2px rgba(99, 102, 241, 0.4);
   }
 
   .mesh-bg {
@@ -51,7 +115,7 @@
   }
   
   .dark .mesh-bg {
-    background-color: #0f172a;
+    background-color: #0b0f19;
     background-image: 
       radial-gradient(at 40% 20%, hsla(280,100%,20%,1) 0px, transparent 50%),
       radial-gradient(at 80% 0%, hsla(189,100%,20%,1) 0px, transparent 50%),
@@ -68,3 +132,4 @@
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+

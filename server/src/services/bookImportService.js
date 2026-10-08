@@ -22,9 +22,12 @@ try {
   console.log("Could not initialize BullMQ Queue:", error.message);
 }
 
-const queueImport = async (file, libraryId, userId) => {
-  if (!importQueue) throw new Error("Import Queue is not available. Please ensure Redis is running.");
+const fs = require("fs");
+const csvParser = require("csv-parser");
+const xlsx = require("xlsx");
+const { processRow } = require("../workers/importWorker");
 
+const queueImport = async (file, libraryId, userId) => {
   const job = await ImportJob.create({
     fileName: file.originalname,
     status: "PENDING",
@@ -40,11 +43,56 @@ const queueImport = async (file, libraryId, userId) => {
     details: `Started bulk import for file: ${file.originalname}`
   });
 
-  await importQueue.add("import-books", {
-    jobId: job._id,
-    filePath: file.path,
-    libraryId
-  });
+  if (importQueue) {
+    await importQueue.add("import-books", {
+      jobId: job._id,
+      filePath: file.path,
+      libraryId
+    });
+  } else {
+    // Seamless async fallback when Redis is offline/disabled
+    setImmediate(async () => {
+      try {
+        await ImportJob.findByIdAndUpdate(job._id, { status: "PROCESSING" });
+        let rows = [];
+        const ext = file.path.split('.').pop().toLowerCase();
+        if (ext === "csv") {
+          rows = await new Promise((resolve, reject) => {
+            const results = [];
+            fs.createReadStream(file.path)
+              .pipe(csvParser())
+              .on("data", (data) => results.push(data))
+              .on("end", () => resolve(results))
+              .on("error", reject);
+          });
+        } else if (ext === "xlsx" || ext === "xls") {
+          const workbook = xlsx.readFile(file.path);
+          const sheetName = workbook.SheetNames[0];
+          rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        }
+
+        await ImportJob.findByIdAndUpdate(job._id, { totalRows: rows.length });
+        let successRows = 0;
+        let failedRows = 0;
+
+        for (let i = 0; i < rows.length; i++) {
+          const result = await processRow(rows[i], libraryId, i + 2, job._id);
+          if (result && result.success) successRows++;
+          else failedRows++;
+        }
+
+        await ImportJob.findByIdAndUpdate(job._id, {
+          status: "COMPLETED",
+          processedRows: rows.length,
+          successRows,
+          failedRows
+        });
+      } catch (err) {
+        await ImportJob.findByIdAndUpdate(job._id, { status: "FAILED" });
+        console.error("[Direct Import Fallback] Error:", err.message);
+      }
+    });
+  }
 
   return job;
 };

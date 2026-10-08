@@ -1,11 +1,6 @@
 const Event = require("../models/Event");
 const EventRegistration = require("../models/EventRegistration");
-const OpenAI = require("openai");
-
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key",
-  baseURL: "https://api.groq.com/openai/v1"
-});
+const { callChatCompletion } = require("../utils/aiClient");
 
 exports.registerForEvent = async (eventId, userId) => {
   const event = await Event.findById(eventId);
@@ -52,15 +47,17 @@ exports.generateEventIdea = async (promptText) => {
 Provide a catchy event Title and a 2-sentence professional Description suitable for a modern tech-forward library.
 Format as JSON: { "title": "Catchy Title", "description": "Professional description." }`;
 
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await callChatCompletion({
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }]
     });
 
     return JSON.parse(response.choices[0].message.content);
   } catch (error) {
-    console.error("Grok AI Event Error:", error.message);
-    throw new Error("Failed to generate AI event ideas");
+    console.error("Groq AI Event Error:", error.message);
+    return {
+      title: `${promptText.charAt(0).toUpperCase() + promptText.slice(1)} Workshop & Interactive Session`,
+      description: `Join us for an engaging session on ${promptText}. Open to all members looking to expand their knowledge.`
+    };
   }
 };

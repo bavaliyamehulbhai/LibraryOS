@@ -1,7 +1,8 @@
 const logger = require("../utils/logger");
 
 const errorHandler = (err, req, res, next) => {
-  logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
+  const statusCode = err.statusCode || err.status || (err.code === "LIMIT_FILE_SIZE" || err.name === "ValidationError" || (err.code && err.code === 11000) ? 400 : 500);
+  logger.error(`${statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
 
   if (err.name === "ValidationError") {
     return res.status(400).json({ success: false, message: err.message });
@@ -18,7 +19,7 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ success: false, message: "Duplicate field value entered" });
   }
 
-  res.status(err.status || 500).json({
+  res.status(statusCode).json({
     success: false,
     message: err.message || "Something went wrong on our end"
   });

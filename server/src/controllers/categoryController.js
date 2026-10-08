@@ -2,6 +2,7 @@ const categoryService = require("../services/categoryService");
 const Category = require("../models/Category");
 const { createCategorySchema, updateCategorySchema } = require("../validators/categoryValidator");
 const AuditLog = require("../models/AuditLog");
+const cache = require("../utils/cache");
 
 exports.createCategory = async (req, res) => {
   try {
@@ -19,6 +20,7 @@ exports.createCategory = async (req, res) => {
 
     const categoryData = { ...value, libraryId };
     const category = await categoryService.createCategory(categoryData);
+    await cache.del(`categories:${libraryId}`);
 
     await AuditLog.create({
       action: "CATEGORY_CREATED",
@@ -37,8 +39,14 @@ exports.createCategory = async (req, res) => {
 exports.getCategories = async (req, res) => {
   try {
     const libraryId = req.user.libraryId;
+    const cacheKey = `categories:${libraryId}:${JSON.stringify(req.query)}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return res.status(200).json(cached);
+
     const result = await categoryService.getCategories(req.query, libraryId);
-    res.status(200).json({ success: true, ...result });
+    const responseData = { success: true, ...result };
+    await cache.set(cacheKey, responseData, 120);
+    res.status(200).json(responseData);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -84,6 +92,7 @@ exports.updateCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: "Category not found" });
     }
 
+    await cache.del(`categories:${libraryId}`);
     await AuditLog.create({
       action: "CATEGORY_UPDATED",
       entity: "CATEGORY",
@@ -107,6 +116,7 @@ exports.deleteCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: "Category not found" });
     }
 
+    await cache.del(`categories:${libraryId}`);
     await AuditLog.create({
       action: "CATEGORY_DELETED",
       entity: "CATEGORY",

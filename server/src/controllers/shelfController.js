@@ -1,9 +1,12 @@
 const shelfService = require("../services/shelfService");
+const cache = require("../utils/cache");
 
 exports.createShelf = async (req, res) => {
   try {
     const shelfData = { ...req.body, libraryId: req.user.libraryId };
     const shelf = await shelfService.createShelf(shelfData);
+    await cache.del(`shelves:${req.user.libraryId}`);
+    await cache.del(`shelf_analytics:${req.user.libraryId}`);
     res.status(201).json({ success: true, data: shelf, message: "Shelf created successfully" });
   } catch (error) {
     if (error.code === 11000) {
@@ -15,7 +18,12 @@ exports.createShelf = async (req, res) => {
 
 exports.getShelves = async (req, res) => {
   try {
+    const cacheKey = `shelves:${req.user.libraryId}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return res.json({ success: true, data: cached });
+
     const shelves = await shelfService.getShelves(req.user.libraryId);
+    await cache.set(cacheKey, shelves, 60);
     res.json({ success: true, data: shelves });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -24,7 +32,12 @@ exports.getShelves = async (req, res) => {
 
 exports.getAnalytics = async (req, res) => {
   try {
+    const cacheKey = `shelf_analytics:${req.user.libraryId}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return res.json({ success: true, data: cached });
+
     const analytics = await shelfService.getAnalytics(req.user.libraryId);
+    await cache.set(cacheKey, analytics, 60);
     res.json({ success: true, data: analytics });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

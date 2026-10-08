@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
@@ -8,216 +8,221 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { FeatureProvider } from './components/common/FeatureGuard';
+import Loader from './components/common/Loader';
+import ScrollToTop from './components/common/ScrollToTop';
 
 // Layouts & Routing Utilities
 import DashboardLayout from './layouts/DashboardLayout';
 import RoleBasedRedirect from './components/common/RoleBasedRedirect';
 
-// Member Dashboard Pages
-import MemberDashboard from './pages/member-dashboard/MemberDashboard';
-import MemberHistory from './pages/member-dashboard/MemberHistory';
-import MemberFines from './pages/member-dashboard/MemberFines';
-import MemberCatalog from './pages/member-dashboard/MemberCatalog';
-import MemberReservations from './pages/member-dashboard/MemberReservations';
+// Lazy Loaded Pages for Instant Performance (No bundle bloat)
+const MemberDashboard = lazy(() => import('./pages/member-dashboard/MemberDashboard'));
+const MemberHistory = lazy(() => import('./pages/member-dashboard/MemberHistory'));
+const MemberFines = lazy(() => import('./pages/member-dashboard/MemberFines'));
+const MemberCatalog = lazy(() => import('./pages/member-dashboard/MemberCatalog'));
+const MemberReservations = lazy(() => import('./pages/member-dashboard/MemberReservations'));
 
 // Auth Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import VerifyOtp from './pages/auth/VerifyOtp';
-import ResetPassword from './pages/auth/ResetPassword';
-import AcceptInvite from './pages/auth/AcceptInvite';
-import OAuthCallback from './pages/auth/OAuthCallback';
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const VerifyOtp = lazy(() => import('./pages/auth/VerifyOtp'));
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
+const AcceptInvite = lazy(() => import('./pages/auth/AcceptInvite'));
+const OAuthCallback = lazy(() => import('./pages/auth/OAuthCallback'));
 
 // Dashboard Pages
-import CirculationDashboard from './pages/dashboard/CirculationDashboard';
-import RealtimeFeed from './pages/dashboard/RealtimeFeed';
-import Libraries from './pages/libraries/Libraries';
-import Branches from './pages/branches/Branches';
-import BranchDetails from './pages/branches/BranchDetails';
-import TransferCenter from './pages/branches/TransferCenter';
-import Users from './pages/users/Users';
-import Members from './pages/members/Members';
-import CreateMember from './pages/members/CreateMember';
-import MemberDetails from './pages/members/MemberDetails';
-import AuditDashboard from './pages/inventory/AuditDashboard';
-import ActiveAudit from './pages/inventory/ActiveAudit';
-import Settings from './pages/settings/Settings';
-import AutomationSettings from './pages/settings/AutomationSettings';
-import ImportCenter from './pages/import-export/ImportCenter';
-import ExportCenter from './pages/import-export/ExportCenter';
-import OnboardingWizard from './pages/onboarding/OnboardingWizard';
-import AnalyticsDashboard from './pages/analytics/AnalyticsDashboard';
-import NotificationCenter from './pages/notifications/NotificationCenter';
-import AuditLogs from './pages/audit/AuditLogs';
-import Reports from './pages/reports/Reports';
+const CirculationDashboard = lazy(() => import('./pages/dashboard/CirculationDashboard'));
+const RealtimeFeed = lazy(() => import('./pages/dashboard/RealtimeFeed'));
+const Libraries = lazy(() => import('./pages/libraries/Libraries'));
+const Branches = lazy(() => import('./pages/branches/Branches'));
+const BranchDetails = lazy(() => import('./pages/branches/BranchDetails'));
+const TransferCenter = lazy(() => import('./pages/branches/TransferCenter'));
+const Users = lazy(() => import('./pages/users/Users'));
+const Members = lazy(() => import('./pages/members/Members'));
+const CreateMember = lazy(() => import('./pages/members/CreateMember'));
+const MemberDetails = lazy(() => import('./pages/members/MemberDetails'));
+const AuditDashboard = lazy(() => import('./pages/inventory/AuditDashboard'));
+const ActiveAudit = lazy(() => import('./pages/inventory/ActiveAudit'));
+const Settings = lazy(() => import('./pages/settings/Settings'));
+const AutomationSettings = lazy(() => import('./pages/settings/AutomationSettings'));
+const ImportCenter = lazy(() => import('./pages/import-export/ImportCenter'));
+const ExportCenter = lazy(() => import('./pages/import-export/ExportCenter'));
+const OnboardingWizard = lazy(() => import('./pages/onboarding/OnboardingWizard'));
+const AnalyticsDashboard = lazy(() => import('./pages/analytics/AnalyticsDashboard'));
+const NotificationCenter = lazy(() => import('./pages/notifications/NotificationCenter'));
+const AuditLogs = lazy(() => import('./pages/audit/AuditLogs'));
+const ActivityLogs = lazy(() => import('./pages/audit/ActivityLogs'));
+const SecurityLogs = lazy(() => import('./pages/audit/SecurityLogs'));
+const ComplianceReports = lazy(() => import('./pages/audit/ComplianceReports'));
+const Reports = lazy(() => import('./pages/reports/Reports'));
+const Roles = lazy(() => import('./pages/roles/Roles'));
+const CreateRole = lazy(() => import('./pages/roles/CreateRole'));
+const RoleDetails = lazy(() => import('./pages/roles/RoleDetails'));
+const SecurityDashboard = lazy(() => import('./pages/security/SecurityDashboard'));
 
 // Books & Catalog
-import Books from './pages/books/Books';
-import CreateBook from './pages/books/CreateBook';
-import EditBook from './pages/books/EditBook';
-import BookDetails from './pages/books/BookDetails';
-import BookGallery from './pages/books/BookGallery';
-import CoverManager from './pages/books/CoverManager';
+const Books = lazy(() => import('./pages/books/Books'));
+const CreateBook = lazy(() => import('./pages/books/CreateBook'));
+const EditBook = lazy(() => import('./pages/books/EditBook'));
+const BookDetails = lazy(() => import('./pages/books/BookDetails'));
+const BookGallery = lazy(() => import('./pages/books/BookGallery'));
+const CoverManager = lazy(() => import('./pages/books/CoverManager'));
 
 // Branch Analytics Pages
-import BranchOverview from './pages/branch-analytics/Overview';
-import BranchComparison from './pages/branch-analytics/Comparison';
-import BranchRankings from './pages/branch-analytics/Rankings';
-import BranchReports from './pages/branch-analytics/Reports';
+const BranchOverview = lazy(() => import('./pages/branch-analytics/Overview'));
+const BranchComparison = lazy(() => import('./pages/branch-analytics/Comparison'));
+const BranchRankings = lazy(() => import('./pages/branch-analytics/Rankings'));
+const BranchReports = lazy(() => import('./pages/branch-analytics/Reports'));
 
 // AI Copilot Page
-import Assistant from './pages/ai/Assistant';
+const Assistant = lazy(() => import('./pages/ai/Assistant'));
 
 // Scanner Pages
-import BookScanner from './pages/scanner/BookScanner';
-import ScanHistory from './pages/scanner/ScanHistory';
+const BookScanner = lazy(() => import('./pages/scanner/BookScanner'));
+const ScanHistory = lazy(() => import('./pages/scanner/ScanHistory'));
 
 // Digital Library Pages
-import DigitalLibrary from './pages/digital-library/DigitalLibrary';
-import ResourceDetails from './pages/digital-library/ResourceDetails';
-import MyLibrary from './pages/digital-library/MyLibrary';
-import UploadResource from './pages/digital-library/UploadResource';
+const DigitalLibrary = lazy(() => import('./pages/digital-library/DigitalLibrary'));
+const ResourceDetails = lazy(() => import('./pages/digital-library/ResourceDetails'));
+const MyLibrary = lazy(() => import('./pages/digital-library/MyLibrary'));
+const UploadResource = lazy(() => import('./pages/digital-library/UploadResource'));
 
 // Reader
-import Reader from './pages/reader/Reader';
-
-// Removed Marketplace, Vendors, Procurement
+const Reader = lazy(() => import('./pages/reader/Reader'));
 
 // Events
-import EventsDashboard from './pages/events/EventsDashboard';
-import AdminEventManagement from './pages/events/AdminEventManagement';
+const EventsDashboard = lazy(() => import('./pages/events/EventsDashboard'));
+const AdminEventManagement = lazy(() => import('./pages/events/AdminEventManagement'));
 
-// Public Portal
-import PublicPortal from './pages/public/PublicPortal';
-import PublicBookDetails from './pages/public/PublicBookDetails';
+// Public Portal & Landing Page
+const LandingPage = lazy(() => import('./pages/public/LandingPage'));
+const PublicPortal = lazy(() => import('./pages/public/PublicPortal'));
+const PublicBookDetails = lazy(() => import('./pages/public/PublicBookDetails'));
 
 // Analytics & Dashboards
-import BranchAnalyticsDashboard from './pages/branch-analytics/Overview';
-import AIAnalyticsDashboard from './pages/analytics/AIAnalyticsDashboard';
+const BranchAnalyticsDashboard = lazy(() => import('./pages/branch-analytics/Overview'));
+const AIAnalyticsDashboard = lazy(() => import('./pages/analytics/AIAnalyticsDashboard'));
 
 // Reading Analytics
-import ReadingDashboard from './pages/analytics/ReadingDashboard';
-import ReaderLeaderboard from './pages/analytics/ReaderLeaderboard';
+const ReadingDashboard = lazy(() => import('./pages/analytics/ReadingDashboard'));
+const ReaderLeaderboard = lazy(() => import('./pages/analytics/ReaderLeaderboard'));
 
 // Research Repository
-import ResearchRepository from './pages/repository/ResearchRepository';
-import ResearchDetails from './pages/repository/ResearchDetails';
-import UploadResearch from './pages/repository/UploadResearch';
+const ResearchRepository = lazy(() => import('./pages/repository/ResearchRepository'));
+const ResearchDetails = lazy(() => import('./pages/repository/ResearchDetails'));
+const UploadResearch = lazy(() => import('./pages/repository/UploadResearch'));
 
 // Search
-import GlobalSearch from './pages/search/GlobalSearch';
-import SearchAnalytics from './pages/search/SearchAnalytics';
+const GlobalSearch = lazy(() => import('./pages/search/GlobalSearch'));
+const SearchAnalytics = lazy(() => import('./pages/search/SearchAnalytics'));
 
 // Shelves
-import ShelfDashboard from './pages/shelves/ShelfDashboard';
-import ShelfRecommendations from './pages/shelves/ShelfRecommendations';
+const ShelfDashboard = lazy(() => import('./pages/shelves/ShelfDashboard'));
+const ShelfRecommendations = lazy(() => import('./pages/shelves/ShelfRecommendations'));
 
 // Reports
-import ExecutiveDashboard from './pages/reports/ExecutiveDashboard';
+const ExecutiveDashboard = lazy(() => import('./pages/reports/ExecutiveDashboard'));
 
 // AI Study Assistant
-import StudyAssistant from './pages/ai-study/StudyAssistant';
-
+const StudyAssistant = lazy(() => import('./pages/ai-study/StudyAssistant'));
 
 // Knowledge Base
-import HelpCenter from './pages/knowledge/HelpCenter';
-import KnowledgeAdmin from './pages/knowledge/KnowledgeAdmin';
-
-// Removed Gamification, Forum
+const HelpCenter = lazy(() => import('./pages/knowledge/HelpCenter'));
+const KnowledgeAdmin = lazy(() => import('./pages/knowledge/KnowledgeAdmin'));
 
 // Notifications
-import AnnouncementManager from './pages/notifications/AnnouncementManager';
+const AnnouncementManager = lazy(() => import('./pages/notifications/AnnouncementManager'));
 
-import ActivationDashboard from './pages/activation/ActivationDashboard';
-import Profile from './pages/profile/Profile';
-import Workspace from './pages/workspace/Workspace';
-import UsageDashboard from './pages/usage/UsageDashboard';
+const ActivationDashboard = lazy(() => import('./pages/activation/ActivationDashboard'));
+const Profile = lazy(() => import('./pages/profile/Profile'));
+const Workspace = lazy(() => import('./pages/workspace/Workspace'));
+const UsageDashboard = lazy(() => import('./pages/usage/UsageDashboard'));
 
 // Recommendation Dashboard
-import RecommendationDashboard from './pages/recommendations/RecommendationDashboard';
+const RecommendationDashboard = lazy(() => import('./pages/recommendations/RecommendationDashboard'));
 
 // Membership Plan Pages
-import MembershipPlans from './pages/membership/MembershipPlans';
-import CreatePlan from './pages/membership/CreatePlan';
-import EditPlan from './pages/membership/EditPlan';
-import PlanDetails from './pages/membership/PlanDetails';
+const MembershipPlans = lazy(() => import('./pages/membership/MembershipPlans'));
+const CreatePlan = lazy(() => import('./pages/membership/CreatePlan'));
+const EditPlan = lazy(() => import('./pages/membership/EditPlan'));
+const PlanDetails = lazy(() => import('./pages/membership/PlanDetails'));
 
 // Member Card Pages
-import MemberCards from './pages/member-cards/MemberCards';
-import GenerateCard from './pages/member-cards/GenerateCard';
-import CardDetails from './pages/member-cards/CardDetails';
+const MemberCards = lazy(() => import('./pages/member-cards/MemberCards'));
+const GenerateCard = lazy(() => import('./pages/member-cards/GenerateCard'));
+const CardDetails = lazy(() => import('./pages/member-cards/CardDetails'));
 
 // Issue Pages
-import IssueBook from './pages/issues/IssueBook';
-import IssueHistory from './pages/issues/IssueHistory';
-import IssueDetails from './pages/issues/IssueDetails';
+const IssueBook = lazy(() => import('./pages/issues/IssueBook'));
+const IssueHistory = lazy(() => import('./pages/issues/IssueHistory'));
+const IssueDetails = lazy(() => import('./pages/issues/IssueDetails'));
 
 // Return Pages
-import ReturnBook from './pages/returns/ReturnBook';
-import ReturnHistory from './pages/returns/ReturnHistory';
+const ReturnBook = lazy(() => import('./pages/returns/ReturnBook'));
+const ReturnHistory = lazy(() => import('./pages/returns/ReturnHistory'));
 
 // Attendance Pages
-import AttendanceKiosk from './pages/attendance/AttendanceKiosk';
-import AttendanceDashboard from './pages/attendance/AttendanceDashboard';
-import ReturnDetails from './pages/returns/ReturnDetails';
+const AttendanceKiosk = lazy(() => import('./pages/attendance/AttendanceKiosk'));
+const AttendanceDashboard = lazy(() => import('./pages/attendance/AttendanceDashboard'));
+const ReturnDetails = lazy(() => import('./pages/returns/ReturnDetails'));
 
 // Reservation Pages
-import Reservations from './pages/reservations/Reservations';
-import CreateReservation from './pages/reservations/CreateReservation';
+const Reservations = lazy(() => import('./pages/reservations/Reservations'));
+const CreateReservation = lazy(() => import('./pages/reservations/CreateReservation'));
 
 // Renewal Pages
-import RenewBook from './pages/renewals/RenewBook';
-import RenewalHistory from './pages/renewals/RenewalHistory';
-import RenewalDetails from './pages/renewals/RenewalDetails';
+const RenewBook = lazy(() => import('./pages/renewals/RenewBook'));
+const RenewalHistory = lazy(() => import('./pages/renewals/RenewalHistory'));
+const RenewalDetails = lazy(() => import('./pages/renewals/RenewalDetails'));
 
 // Fine Pages
-import Fines from './pages/fines/Fines';
+const Fines = lazy(() => import('./pages/fines/Fines'));
 
 // Payment Pages
-import Payments from './pages/payments/Payments';
-import CreatePayment from './pages/payments/CreatePayment';
-import PaymentDetails from './pages/payments/PaymentDetails';
+const Payments = lazy(() => import('./pages/payments/Payments'));
+const CreatePayment = lazy(() => import('./pages/payments/CreatePayment'));
+const PaymentDetails = lazy(() => import('./pages/payments/PaymentDetails'));
 
 // Due Date Pages
-import DueDashboard from './pages/due-dates/DueDashboard';
-import OverdueBooks from './pages/due-dates/OverdueBooks';
+const DueDashboard = lazy(() => import('./pages/due-dates/DueDashboard'));
+const OverdueBooks = lazy(() => import('./pages/due-dates/OverdueBooks'));
 
 // Borrowing Pages
-import BorrowingDashboard from './pages/borrowing/BorrowingDashboard';
-import Policies from './pages/borrowing/Policies';
+const BorrowingDashboard = lazy(() => import('./pages/borrowing/BorrowingDashboard'));
+const Policies = lazy(() => import('./pages/borrowing/Policies'));
 
 // History Pages
-import BorrowHistory from './pages/history/BorrowHistory';
-import MemberTimeline from './pages/history/MemberTimeline';
+const BorrowHistory = lazy(() => import('./pages/history/BorrowHistory'));
+const MemberTimeline = lazy(() => import('./pages/history/MemberTimeline'));
 
 // Notification Pages
-import Templates from './pages/notifications/Templates';
-import NotificationSettings from './pages/notifications/NotificationSettings';
+const Templates = lazy(() => import('./pages/notifications/Templates'));
+const NotificationSettings = lazy(() => import('./pages/notifications/NotificationSettings'));
 
 // Email Pages
-import EmailDashboard from './pages/emails/EmailDashboard';
-import EmailLogs from './pages/emails/EmailLogs';
-import EmailTemplates from './pages/emails/EmailTemplates';
-import ComposeEmail from './pages/emails/ComposeEmail';
-
-// Removed SMS, WhatsApp
+const EmailDashboard = lazy(() => import('./pages/emails/EmailDashboard'));
+const EmailLogs = lazy(() => import('./pages/emails/EmailLogs'));
+const EmailTemplates = lazy(() => import('./pages/emails/EmailTemplates'));
+const ComposeEmail = lazy(() => import('./pages/emails/ComposeEmail'));
 
 // Analytics Pages
-import MemberAnalytics from './pages/analytics/MemberAnalytics';
-import ReadingAnalytics from './pages/analytics/ReadingAnalytics';
-import RiskAnalytics from './pages/analytics/RiskAnalytics';
+const MemberAnalytics = lazy(() => import('./pages/analytics/MemberAnalytics'));
+const ReadingAnalytics = lazy(() => import('./pages/analytics/ReadingAnalytics'));
+const RiskAnalytics = lazy(() => import('./pages/analytics/RiskAnalytics'));
+const InventoryAnalytics = lazy(() => import('./pages/analytics/InventoryAnalytics'));
+const BookAnalytics = lazy(() => import('./pages/analytics/BookAnalytics'));
 
 // Subscriptions & Billing
-import Subscriptions from './pages/subscriptions/Subscriptions';
-import Invoices from './pages/billing/Invoices';
-import BrandingSettings from './pages/branding/BrandingSettings';
-import ThemeBuilder from './pages/branding/ThemeBuilder';
-import Tickets from './pages/support/Tickets';
-import CreateTicket from './pages/support/CreateTicket';
-import TicketDetails from './pages/support/TicketDetails';
-import ArticleDetails from './pages/help/ArticleDetails';
-import GlobalDashboard from './pages/global-analytics/GlobalDashboard';
+const Subscriptions = lazy(() => import('./pages/subscriptions/Subscriptions'));
+const Invoices = lazy(() => import('./pages/billing/Invoices'));
+const BrandingSettings = lazy(() => import('./pages/branding/BrandingSettings'));
+const ThemeBuilder = lazy(() => import('./pages/branding/ThemeBuilder'));
+const Tickets = lazy(() => import('./pages/support/Tickets'));
+const CreateTicket = lazy(() => import('./pages/support/CreateTicket'));
+const TicketDetails = lazy(() => import('./pages/support/TicketDetails'));
+const ArticleDetails = lazy(() => import('./pages/help/ArticleDetails'));
+const GlobalDashboard = lazy(() => import('./pages/global-analytics/GlobalDashboard'));
 
 function App() {
   const dispatch = useDispatch();
@@ -240,8 +245,16 @@ function App() {
         <FeatureProvider>
           <Toaster position="top-right" />
           <Router>
-          <Routes>
-            {/* Public Routes */}
+            <ScrollToTop />
+            <Suspense fallback={<Loader />}>
+              <Routes>
+            {/* Public Landing & Marketing */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/portal" element={<PublicPortal />} />
+            <Route path="/portal/book/:id" element={<PublicBookDetails />} />
+
+            {/* Public Auth Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -280,8 +293,11 @@ function App() {
                 <Route path="/books/gallery" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN', 'ASSISTANT']}><BookGallery /></RoleRoute>} />
                 <Route path="/books/cover-manager" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><CoverManager /></RoleRoute>} />
                 <Route path="/books/create" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><CreateBook /></RoleRoute>} />
+                <Route path="/books/new" element={<Navigate to="/books/create" replace />} />
                 <Route path="/books/edit/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><EditBook /></RoleRoute>} />
                 <Route path="/books/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><BookDetails /></RoleRoute>} />
+                <Route path="/students/new" element={<Navigate to="/members/new" replace />} />
+                <Route path="/transactions" element={<Navigate to="/issues" replace />} />
                 
                 <Route path="/branches" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><Branches /></RoleRoute>} />
                 <Route path="/branches/transfer" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><TransferCenter /></RoleRoute>} />
@@ -343,6 +359,8 @@ function App() {
                 <Route path="/analytics/members" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><MemberAnalytics /></RoleRoute>} />
                 <Route path="/analytics/reading" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><ReadingAnalytics /></RoleRoute>} />
                 <Route path="/analytics/risk" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><RiskAnalytics /></RoleRoute>} />
+                <Route path="/analytics/inventory" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><InventoryAnalytics /></RoleRoute>} />
+                <Route path="/analytics/books" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><BookAnalytics /></RoleRoute>} />
                 <Route path="/analytics/reports" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Reports /></RoleRoute>} />
                 
                 <Route path="/branch-analytics/overview" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><BranchOverview /></RoleRoute>} />
@@ -376,6 +394,7 @@ function App() {
                 <Route path="/search/analytics" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><SearchAnalytics /></RoleRoute>} />
 
                 <Route path="/shelves" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ShelfDashboard /></RoleRoute>} />
+                <Route path="/shelves/dashboard" element={<Navigate to="/shelves" replace />} />
                 <Route path="/shelves/recommendations" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ShelfRecommendations /></RoleRoute>} />
                 
                 {/* Inventory Audit */}
@@ -408,11 +427,18 @@ function App() {
                 <Route path="/support" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Tickets /></RoleRoute>} />
                 <Route path="/support/new" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><CreateTicket /></RoleRoute>} />
                 <Route path="/support/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><TicketDetails /></RoleRoute>} />
+                <Route path="/roles" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Roles /></RoleRoute>} />
+                <Route path="/roles/new" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><CreateRole /></RoleRoute>} />
+                <Route path="/roles/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><RoleDetails /></RoleRoute>} />
+                <Route path="/security" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><SecurityDashboard /></RoleRoute>} />
                 <Route path="/help/:id" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ArticleDetails /></RoleRoute>} />
+                <Route path="/help/article/:slug" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN', 'LIBRARIAN']}><ArticleDetails /></RoleRoute>} />
                 <Route path="/global-analytics" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><GlobalDashboard /></RoleRoute>} />
-                <Route path="/analytics" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><AnalyticsDashboard /></RoleRoute>} />
-                <Route path="/notifications" element={<NotificationCenter />} />
                 <Route path="/audit" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><AuditLogs /></RoleRoute>} />
+                <Route path="/audit/logs" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><AuditLogs /></RoleRoute>} />
+                <Route path="/audit/activity" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><ActivityLogs /></RoleRoute>} />
+                <Route path="/audit/security" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><SecurityLogs /></RoleRoute>} />
+                <Route path="/audit/compliance" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><ComplianceReports /></RoleRoute>} />
                 <Route path="/reports" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'LIBRARY_ADMIN']}><Reports /></RoleRoute>} />
                 <Route path="/activation" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><ActivationDashboard /></RoleRoute>} />
                 <Route path="/profile" element={<Profile />} />
@@ -422,13 +448,10 @@ function App() {
             </Route>
 
             {/* Catch All */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/portal" element={<PublicPortal />} />
-          <Route path="/portal/book/:id" element={<PublicBookDetails />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+            <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </Router>
       </FeatureProvider>
     </ThemeProvider>
   </ErrorBoundary>

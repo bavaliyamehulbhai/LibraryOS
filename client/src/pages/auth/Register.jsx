@@ -96,59 +96,76 @@ const Register = () => {
           error={errors.confirmPassword}
         />
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Library
+        <div className="mb-3">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+            Library Tenant
           </label>
-          <select
-            className={`appearance-none block w-full px-3 py-2.5 border rounded-lg shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 dark:focus:ring-indigo-500/50 dark:focus:border-indigo-500 transition-colors duration-200 sm:text-sm ${
-              errors.libraryId ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
-            }`}
-            {...register("libraryId", { required: "Library is required" })}
-          >
-            <option value="">Select a library</option>
-            {libraries.map(lib => (
-              <option key={lib._id} value={lib._id}>{lib.name}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              className={`appearance-none block w-full px-3.5 py-2.5 border rounded-xl shadow-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
+                errors.libraryId ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800'
+              }`}
+              {...register("libraryId", { required: "Library is required" })}
+            >
+              <option value="">Select a library</option>
+              {libraries.map(lib => (
+                <option key={lib._id} value={lib._id}>{lib.name}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+            </div>
+          </div>
           {errors.libraryId && (
-            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.libraryId.message}</p>
+            <p className="mt-1 text-xs text-rose-500">{errors.libraryId.message}</p>
           )}
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Role
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+            Assigned Role
           </label>
-          <select
-            className={`appearance-none block w-full px-3 py-2.5 border rounded-lg shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 dark:focus:ring-indigo-500/50 dark:focus:border-indigo-500 transition-colors duration-200 sm:text-sm ${
-              errors.role ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'
-            }`}
-            {...register("role", { required: "Role is required" })}
-          >
-            <option value="">Select a role</option>
-            <option value="LIBRARIAN">LIBRARIAN</option>
-            <option value="ASSISTANT">ASSISTANT</option>
-            <option value="STUDENT">STUDENT</option>
-          </select>
+          <div className="relative">
+            <select
+              className={`appearance-none block w-full px-3.5 py-2.5 border rounded-xl shadow-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
+                errors.role ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800'
+              }`}
+              {...register("role", { required: "Role is required" })}
+            >
+              <option value="">Select a role</option>
+              <option value="LIBRARIAN">LIBRARIAN</option>
+              <option value="ASSISTANT">ASSISTANT</option>
+              <option value="STUDENT">STUDENT</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+            </div>
+          </div>
           {errors.role && (
-            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.role.message}</p>
+            <p className="mt-1 text-xs text-rose-500">{errors.role.message}</p>
           )}
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-[10px] shadow-sm text-sm font-semibold text-white dark:text-black bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 transition-colors mt-6"
+          className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl shadow-md shadow-indigo-600/20 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 transition-all mt-4"
         >
-          {loading ? "Registering..." : "Create Account"}
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              <span>Registering...</span>
+            </div>
+          ) : (
+            "Create Account"
+          )}
         </button>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-center">
-        <p className="text-[13px] text-gray-500 dark:text-gray-400">
+      <div className="mt-6 pt-4 border-t border-slate-200/60 dark:border-slate-800/80 flex items-center justify-center">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-black dark:text-white hover:underline transition-all">
+          <Link to="/login" className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
             Sign in
           </Link>
         </p>

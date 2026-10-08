@@ -331,3 +331,95 @@ exports.deleteResource = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.streamResourceFile = async (req, res) => {
+  try {
+    const resource = await DigitalResource.findById(req.params.id);
+    if (!resource) return res.status(404).json({ success: false, message: "Resource not found" });
+
+    // Check Access Level
+    if (["MEMBER", "STUDENT"].includes(req.user.role)) {
+      if (resource.accessLevel === "STAFF_ONLY") {
+        return res.status(403).json({ success: false, message: "Access restricted to library staff" });
+      }
+    }
+
+    const fileUrl = resource.fileUrl;
+    if (!fileUrl) return res.status(404).json({ success: false, message: "No file URL associated with this resource" });
+
+    // If local file on disk
+    if (fileUrl.startsWith("/uploads/") || (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://"))) {
+      const path = require("path");
+      const fs = require("fs");
+      const localPath = path.resolve(__dirname, "../../", fileUrl.replace(/^\//, ""));
+      if (fs.existsSync(localPath)) {
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Cache-Control", "public, max-age=3600");
+        return fs.createReadStream(localPath).pipe(res);
+      }
+    }
+
+    // Remote URL stream / fetch
+    try {
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        return res.redirect(fileUrl);
+      }
+      res.setHeader("Content-Type", response.headers.get("content-type") || "application/pdf");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      
+      const arrayBuffer = await response.arrayBuffer();
+      return res.send(Buffer.from(arrayBuffer));
+    } catch (fetchErr) {
+      console.warn("Proxy fetch error, redirecting:", fetchErr.message);
+      return res.redirect(fileUrl);
+    }
+  } catch (error) {
+    console.error("Stream error:", error.message);
+    res.status(500).json({ success: false, message: "Failed to stream document" });
+  }
+};
+
+exports.downloadResource = async (req, res) => {
+  try {
+    const resource = await DigitalResource.findById(req.params.id);
+    if (!resource) return res.status(404).json({ success: false, message: "Resource not found" });
+
+    if (resource.accessLevel === "STAFF_ONLY" && ["MEMBER", "STUDENT"].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: "Download restricted to staff" });
+    }
+
+    const safeTitle = (resource.title || "document").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const fileUrl = resource.fileUrl;
+
+    if (!fileUrl) return res.status(404).json({ success: false, message: "No file URL available" });
+
+    // Local file
+    if (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://")) {
+      const path = require("path");
+      const fs = require("fs");
+      const localPath = path.resolve(__dirname, "../../", fileUrl.replace(/^\//, ""));
+      if (fs.existsSync(localPath)) {
+        return res.download(localPath, `${safeTitle}.pdf`);
+      }
+    }
+
+    // Remote file
+    try {
+      const response = await fetch(fileUrl);
+      if (response.ok) {
+        res.setHeader("Content-Disposition", `attachment; filename="${safeTitle}.pdf"`);
+        res.setHeader("Content-Type", response.headers.get("content-type") || "application/pdf");
+        const arrayBuffer = await response.arrayBuffer();
+        return res.send(Buffer.from(arrayBuffer));
+      }
+      return res.redirect(fileUrl);
+    } catch (e) {
+      return res.redirect(fileUrl);
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

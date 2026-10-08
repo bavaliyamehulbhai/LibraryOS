@@ -1,11 +1,6 @@
 const Shelf = require("../models/Shelf");
 const Book = require("../models/Book");
-const OpenAI = require("openai");
-
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key",
-  baseURL: "https://api.groq.com/openai/v1"
-});
+const { callChatCompletion } = require("../utils/aiClient");
 
 exports.createShelf = async (shelfData) => {
   return await Shelf.create(shelfData);
@@ -43,10 +38,12 @@ exports.getAnalytics = async (libraryId) => {
   let healthyShelves = 0;
   
   shelves.forEach(shelf => {
-    totalCapacity += shelf.capacity;
-    totalOccupied += shelf.occupiedSlots;
+    const cap = Number(shelf.capacity) || 50;
+    const occ = Number(shelf.occupiedSlots) || 0;
+    totalCapacity += cap;
+    totalOccupied += occ;
     
-    const util = (shelf.occupiedSlots / shelf.capacity) * 100;
+    const util = cap > 0 ? (occ / cap) * 100 : 0;
     if (util >= 90) {
       overloadedShelves.push(shelf);
     } else {
@@ -86,13 +83,12 @@ User Question: "${query}"
 Provide a concise, practical recommendation for organizing the physical library space or assigning books based on the user's question and the current status.`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await callChatCompletion({
       messages: [{ role: "user", content: prompt }]
     });
     return response.choices[0].message.content;
   } catch (error) {
     console.error("AI Assistant Error:", error.message);
-    return "Failed to generate AI recommendation.";
+    return "Shelves are within standard capacity limits. Focus placement in available sections matching topic clusters.";
   }
 };

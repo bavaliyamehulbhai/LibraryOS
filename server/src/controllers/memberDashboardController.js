@@ -4,140 +4,118 @@ const Reservation = require("../models/Reservation");
 const User = require("../models/User");
 
 const getMemberProfileId = async (req) => {
-  if (req.user.memberProfileId) return req.user.memberProfileId;
-  const user = await User.findById(req.user.id || req.user._id);
-  if (!user) throw new Error("User not found");
-  
-  if (!user.memberProfileId) {
-    const Member = require("../models/Member");
-    
-    // Check if member exists by email
-    let member = await Member.findOne({ email: user.email, libraryId: user.libraryId });
-    
-    if (!member) {
-      const { generateMemberCode } = require("../services/memberCodeService");
-      const memberCode = await generateMemberCode(user.libraryId);
-      const nameParts = (user.name || "Unknown").split(" ");
-      const firstName = nameParts[0];
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "User";
+  const User = require("../models/User");
+  const Member = require("../models/Member");
+  const Library = require("../models/Library");
 
-      member = await Member.create({
-        memberCode,
-        firstName,
-        lastName,
-        email: user.email,
-        phone: user.phone || "0000000000",
-        memberType: user.role === "STUDENT" ? "STUDENT" : "EXTERNAL",
-        libraryId: user.libraryId
+  const userId = req.user.id || req.user._id;
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+
+  // Determine valid libraryId
+  let libraryId = req.user.libraryId || user.libraryId;
+  if (!libraryId) {
+    const defaultLib = await Library.findOne();
+    if (defaultLib) {
+      libraryId = defaultLib._id;
+    }
+  }
+
+  // 1. Check if user already has an existing member profile linked
+  if (user.memberProfileId) {
+    const existingMember = await Member.findById(user.memberProfileId);
+    if (existingMember) {
+      return { memberId: existingMember._id, libraryId: existingMember.libraryId || libraryId };
+    }
+  }
+
+  // 2. Check if member exists by email
+  let member = await Member.findOne({ email: user.email });
+  if (!member) {
+    const { generateMemberCode } = require("../services/memberCodeService");
+    let memberCode = "MEM-" + Math.floor(100000 + Math.random() * 900000);
+    try {
+      if (libraryId) {
+        memberCode = await generateMemberCode(libraryId);
+      }
+    } catch (e) {
+      console.warn("Could not generate auto member code:", e.message);
+    }
+
+    const nameParts = (user.name || "Member User").trim().split(" ");
+    const firstName = nameParts[0] || "Member";
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "User";
+
+    member = await Member.create({
+      memberCode,
+      firstName,
+      lastName,
+      email: user.email,
+      phone: user.phone || "9876543210",
+      memberType: user.role === "STUDENT" ? "STUDENT" : "EXTERNAL",
+      libraryId: libraryId,
+      status: "ACTIVE"
+    });
+  }
+
+  // Ensure member has an active membership plan
+  if (!member.membershipPlanId && libraryId) {
+    const MembershipPlan = require("../models/MembershipPlan");
+    let plan = await MembershipPlan.findOne({ libraryId, status: "ACTIVE" });
+    if (!plan) {
+      plan = await MembershipPlan.findOne({ libraryId });
+    }
+    if (!plan) {
+      plan = await MembershipPlan.create({
+        libraryId,
+        name: "Standard Annual Membership",
+        description: "Full access to library resources and circulation catalog.",
+        borrowLimit: 10,
+        issueDuration: 14,
+        finePerDay: 5,
+        planType: "STUDENT",
+        status: "ACTIVE"
       });
     }
-    
-    // Auto assign plan, card, and some data to make the dashboard look "real" with data
-    if (!member.membershipPlanId) {
-       const MembershipPlan = require("../models/MembershipPlan");
-       let plan = await MembershipPlan.findOne({ libraryId: user.libraryId, isActive: true });
-       
-       if (!plan) {
-          plan = await MembershipPlan.create({
-             libraryId: user.libraryId,
-             name: "Premium Annual Membership",
-             description: "Full access to all library resources and digital media.",
-             price: 1999,
-             durationMonths: 12,
-             borrowLimit: 10,
-             issueDuration: 14,
-             finePerDay: 5,
-             isActive: true,
-             features: ["Borrow up to 10 books", "Access to digital library", "Free Wi-Fi", "Event access"]
-          });
-       }
 
-       member.membershipPlanId = plan._id;
-       const expiryDate = new Date();
-       expiryDate.setFullYear(expiryDate.getFullYear() + (plan.durationMonths ? plan.durationMonths / 12 : 1));
-       member.cardExpiryDate = expiryDate;
-       await member.save();
-
-       const MemberCard = require("../models/MemberCard");
-       const existingCard = await MemberCard.findOne({ memberId: member._id });
-       if (!existingCard) {
-           await MemberCard.create({
-              memberId: member._id,
-              libraryId: user.libraryId,
-              cardNumber: member.memberCode,
-              barcode: member.memberCode,
-              qrCode: member.memberCode,
-              issueDate: new Date(),
-              expiryDate,
-              status: "ACTIVE"
-           });
-       }
-
-       // --- Add Realistic Mock Data for Dashboard (Transaction & Fine) ---
-       const Transaction = require("../models/Transaction");
-       const Fine = require("../models/Fine");
-       const Book = require("../models/Book");
-       
-       const existingTx = await Transaction.findOne({ memberId: member._id });
-       if (!existingTx) {
-          // Find any book to issue
-          const book = await Book.findOne({ libraryId: user.libraryId });
-          const BookCopy = require("../models/BookCopy");
-          const copy = book ? await BookCopy.findOne({ bookId: book._id }) : null;
-
-          if (book && copy) {
-             const dueDate = new Date();
-             dueDate.setDate(dueDate.getDate() - 2); // Overdue by 2 days
-             
-             const tx = await Transaction.create({
-                memberId: member._id,
-                libraryId: user.libraryId,
-                bookId: book._id,
-                bookCopyId: copy._id,
-                issueDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // Issued 10 days ago
-                dueDate: dueDate,
-                status: "OVERDUE",
-                transactionType: "ISSUE"
-             });
-             
-             // Create a small fine for the overdue book
-             await Fine.create({
-                memberId: member._id,
-                libraryId: user.libraryId,
-                transactionId: tx._id,
-                amount: 10,
-                pendingAmount: 10,
-                reason: "Overdue book return",
-                status: "PENDING"
-             });
-             
-             // Create a returned transaction for history
-             await Transaction.create({
-                memberId: member._id,
-                libraryId: user.libraryId,
-                bookId: book._id,
-                bookCopyId: copy._id,
-                issueDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Issued 30 days ago
-                dueDate: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000), 
-                returnDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // Returned 20 days ago
-                status: "RETURNED",
-                transactionType: "ISSUE"
-             });
-          }
-       }
-    }
-    
-    await User.updateOne({ _id: user._id }, { $set: { memberProfileId: member._id } });
-    return member._id;
+    member.membershipPlanId = plan._id;
+    await member.save();
   }
-  
-  return user.memberProfileId;
+
+  // Ensure member has a card
+  if (libraryId) {
+    const MemberCard = require("../models/MemberCard");
+    let card = await MemberCard.findOne({ memberId: member._id });
+    if (!card) {
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      await MemberCard.create({
+        memberId: member._id,
+        libraryId,
+        cardNumber: member.memberCode || "CARD-" + Date.now(),
+        barcode: member.memberCode || "CARD-" + Date.now(),
+        qrCode: member.memberCode || "CARD-" + Date.now(),
+        issueDate: new Date(),
+        expiryDate,
+        status: "ACTIVE"
+      });
+    }
+  }
+
+  // Update user pointer
+  user.memberProfileId = member._id;
+  if (!user.libraryId && libraryId) {
+    user.libraryId = libraryId;
+  }
+  await user.save();
+
+  return { memberId: member._id, libraryId: member.libraryId || libraryId };
 };
 
 exports.getDashboard = async (req, res) => {
   try {
-    const profileId = await getMemberProfileId(req);
-    const data = await dashboardService.getDashboard(req.user.libraryId, profileId);
+    const { memberId, libraryId } = await getMemberProfileId(req);
+    const data = await dashboardService.getDashboard(libraryId, memberId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     console.error("Member Dashboard Error:", error);
@@ -147,8 +125,8 @@ exports.getDashboard = async (req, res) => {
 
 exports.getBorrowStats = async (req, res) => {
   try {
-    const profileId = await getMemberProfileId(req);
-    const data = await dashboardService.getBorrowStats(req.user.libraryId, profileId);
+    const { memberId, libraryId } = await getMemberProfileId(req);
+    const data = await dashboardService.getBorrowStats(libraryId, memberId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -157,8 +135,8 @@ exports.getBorrowStats = async (req, res) => {
 
 exports.getFinesHistory = async (req, res) => {
   try {
-    const profileId = await getMemberProfileId(req);
-    const data = await dashboardService.getFinesHistory(req.user.libraryId, profileId);
+    const { memberId, libraryId } = await getMemberProfileId(req);
+    const data = await dashboardService.getFinesHistory(libraryId, memberId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -167,8 +145,8 @@ exports.getFinesHistory = async (req, res) => {
 
 exports.getMyReservations = async (req, res) => {
   try {
-    const profileId = await getMemberProfileId(req);
-    const reservations = await Reservation.find({ libraryId: req.user.libraryId, memberId: profileId })
+    const { memberId, libraryId } = await getMemberProfileId(req);
+    const reservations = await Reservation.find({ memberId })
       .populate("bookId", "title authors coverImage")
       .sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: reservations });

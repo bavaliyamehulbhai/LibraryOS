@@ -5,6 +5,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
+import { getCuratedBookById } from '../../constants/booksData';
+
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const PublicBookDetails = () => {
@@ -23,8 +25,15 @@ const PublicBookDetails = () => {
       const res = await axios.get(`${API_URL}/v1/public/books/${id}`);
       if (res.data.success) {
         setBook(res.data.data);
+        return;
       }
     } catch (error) {
+      // Check curated fallback
+      const fallbackBook = getCuratedBookById(id);
+      if (fallbackBook) {
+        setBook(fallbackBook);
+        return;
+      }
       toast.error("Failed to load book details");
       navigate('/portal');
     } finally {

@@ -22,15 +22,16 @@ try {
   console.log("Could not initialize BullMQ Queue in export service.");
 }
 
-exports.requestExport = async (type, format, filters, libraryId, userId) => {
-  if (!exportQueue) throw new Error("Export Queue is not available. Please ensure Redis is running.");
+const { processExport } = require("../workers/exportWorker");
 
+exports.requestExport = async (type, format, filters, libraryId, userId) => {
+  const normFormat = (format || "").toLowerCase() === "excel" ? "xlsx" : (format || "csv").toLowerCase();
   const fileName = `${type}_export_${Date.now()}`;
   
   const job = await ExportJob.create({
     fileName,
     type,
-    format,
+    format: normFormat,
     filters,
     libraryId,
     createdBy: userId
@@ -44,15 +45,31 @@ exports.requestExport = async (type, format, filters, libraryId, userId) => {
     details: `Started manual ${format} export for ${type}`
   });
 
-  await exportQueue.add("export-books", {
-    jobId: job._id,
-    type,
-    format,
-    libraryId,
-    filters
-  });
+  if (exportQueue) {
+    await exportQueue.add("export-books", {
+      jobId: job._id,
+      type,
+      format: normFormat,
+      libraryId,
+      filters
+    });
+  } else if (processExport) {
+    // Synchronous direct fallback when Redis is not active
+    try {
+      const filePath = await processExport(job._id, type, normFormat, libraryId, filters);
+      job.status = "COMPLETED";
+      job.filePath = filePath;
+      await job.save();
+    } catch (err) {
+      job.status = "FAILED";
+      await job.save();
+      console.error("[Export Direct Fallback] Error generating file:", err);
+    }
+  }
 
-  return job;
+  const result = job.toObject();
+  result.downloadUrl = `/api/v1/export/download/${job._id}`;
+  return result;
 };
 
 exports.getExportProgress = async (jobId, libraryId) => {

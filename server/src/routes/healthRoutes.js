@@ -16,13 +16,12 @@ router.get("/readiness", (req, res) => {
 });
 
 router.get("/debug-users", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(403).json({ success: false, message: "Forbidden in production" });
+  }
   const User = require("../models/User");
-  const users = await User.find({});
-  res.json({
-    totalUsers: users.length,
-    superAdmins: users.filter(u => u.role === "SUPER_ADMIN").map(u => ({ email: u.email, libraryId: u.libraryId })),
-    students: users.filter(u => u.role === "STUDENT").map(u => ({ email: u.email, libraryId: u.libraryId }))
-  });
+  const count = await User.countDocuments({});
+  res.json({ totalUsers: count, status: "OK" });
 });
 
 module.exports = router;

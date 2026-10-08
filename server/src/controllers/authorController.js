@@ -2,6 +2,7 @@ const authorService = require("../services/authorService");
 const Author = require("../models/Author");
 const { createAuthorSchema, updateAuthorSchema } = require("../validators/authorValidator");
 const AuditLog = require("../models/AuditLog");
+const cache = require("../utils/cache");
 
 exports.createAuthor = async (req, res) => {
   try {
@@ -19,6 +20,7 @@ exports.createAuthor = async (req, res) => {
 
     const authorData = { ...value, libraryId };
     const author = await authorService.createAuthor(authorData);
+    await cache.del(`authors:${libraryId}`);
 
     await AuditLog.create({
       action: "AUTHOR_CREATED",
@@ -37,8 +39,14 @@ exports.createAuthor = async (req, res) => {
 exports.getAuthors = async (req, res) => {
   try {
     const libraryId = req.user.libraryId;
+    const cacheKey = `authors:${libraryId}:${JSON.stringify(req.query)}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return res.status(200).json(cached);
+
     const result = await authorService.getAuthors(req.query, libraryId);
-    res.status(200).json({ success: true, ...result });
+    const responseData = { success: true, ...result };
+    await cache.set(cacheKey, responseData, 120);
+    res.status(200).json(responseData);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -84,6 +92,8 @@ exports.updateAuthor = async (req, res) => {
       return res.status(404).json({ success: false, message: "Author not found" });
     }
 
+    await cache.del(`authors:${libraryId}`);
+
     await AuditLog.create({
       action: "AUTHOR_UPDATED",
       entity: "AUTHOR",
@@ -106,6 +116,8 @@ exports.deleteAuthor = async (req, res) => {
     if (!author) {
       return res.status(404).json({ success: false, message: "Author not found" });
     }
+
+    await cache.del(`authors:${libraryId}`);
 
     await AuditLog.create({
       action: "AUTHOR_DELETED",

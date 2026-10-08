@@ -1,10 +1,5 @@
 const ResearchPaper = require("../models/ResearchPaper");
-const OpenAI = require("openai");
-
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key",
-  baseURL: "https://api.groq.com/openai/v1"
-});
+const { callChatCompletion } = require("../utils/aiClient");
 
 exports.aiSummarize = async (abstract) => {
   if (!process.env.GROQ_API_KEY) return "AI Summary unavailable. Please configure GROQ_API_KEY.";
@@ -13,8 +8,7 @@ exports.aiSummarize = async (abstract) => {
 Abstract: "${abstract}"`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await callChatCompletion({
       messages: [{ role: "user", content: prompt }]
     });
     return response.choices[0].message.content;
@@ -27,24 +21,23 @@ Abstract: "${abstract}"`;
 exports.aiGenerateCitation = async (paperData, format = "APA") => {
   if (!process.env.GROQ_API_KEY) {
     // Basic fallback for APA
-    if (format === "APA") return `${paperData.authors[0]} et al. (${paperData.publicationYear}). ${paperData.title}.`;
+    if (format === "APA") return `${paperData.authors?.[0] || 'Unknown'} et al. (${paperData.publicationYear || new Date().getFullYear()}). ${paperData.title}.`;
     return "Citation generation requires AI integration.";
   }
   
   const prompt = `Generate a standard ${format} citation for this research paper. Return ONLY the citation string, nothing else.
 Title: ${paperData.title}
-Authors: ${paperData.authors.join(", ")}
+Authors: ${paperData.authors?.join(", ") || "Unknown"}
 Year: ${paperData.publicationYear}
 Type: ${paperData.researchType}`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await callChatCompletion({
       messages: [{ role: "user", content: prompt }]
     });
     return response.choices[0].message.content.trim();
   } catch (error) {
     console.error("AI Citation Error:", error.message);
-    return "Failed to generate AI citation.";
+    return `${paperData.authors?.[0] || 'Unknown'} et al. (${paperData.publicationYear || new Date().getFullYear()}). ${paperData.title}.`;
   }
 };

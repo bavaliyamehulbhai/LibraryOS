@@ -22,4 +22,8 @@ router.delete("/:id", checkPermission([PERMISSIONS.RESOURCE_DELETE]), digitalLib
 // Progress tracking
 router.post("/progress", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.updateReadingProgress);
 
+// Streaming & Downloading
+router.get("/:id/stream", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.streamResourceFile);
+router.get("/:id/download", checkPermission([PERMISSIONS.RESOURCE_VIEW]), digitalLibraryController.downloadResource);
+
 module.exports = router;

@@ -5,12 +5,7 @@ const Author = require("../models/Author");
 const Publisher = require("../models/Publisher");
 const BookCopy = require("../models/BookCopy");
 const Shelf = require("../models/Shelf");
-const OpenAI = require("openai");
-
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key",
-  baseURL: "https://api.groq.com/openai/v1"
-});
+const { callChatCompletion } = require("../utils/aiClient");
 
 exports.logSearch = async (query, libraryId, userId, searchType, resultsCount, semanticKeywords = []) => {
   try {
@@ -49,12 +44,17 @@ exports.semanticSearch = async (query, libraryId) => {
   // 1. Ask Grok to extract core searchable keywords from natural language
   const prompt = `Convert this natural language query into 2-4 optimized database search keywords. Return ONLY the comma separated keywords, nothing else. Query: "${query}"`;
   
-  const response = await client.chat.completions.create({
-    model: "llama-3.1-8b-instant",
-    messages: [{ role: "user", content: prompt }]
-  });
-  
-  const keywords = response.choices[0].message.content.split(',').map(k => k.trim());
+  let keywords = query.split(/\s+/).filter(Boolean);
+  try {
+    const response = await callChatCompletion({
+      messages: [{ role: "user", content: prompt }]
+    });
+    if (response?.choices?.[0]?.message?.content) {
+      keywords = response.choices[0].message.content.split(',').map(k => k.trim());
+    }
+  } catch (err) {
+    console.error("Semantic search keyword extraction error:", err.message);
+  }
   
   // 2. Perform the global search using the generated keywords
   const combinedQuery = keywords.join(" ");

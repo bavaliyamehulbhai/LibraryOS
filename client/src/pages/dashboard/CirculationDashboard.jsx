@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Calendar, Book, Users, Clock, AlertTriangle, IndianRupee, FileText, CalendarCheck, Activity } from 'lucide-react';
+import { 
+  Calendar, Book, Users, Clock, AlertTriangle, 
+  IndianRupee, FileText, CalendarCheck, Activity, 
+  ArrowUpRight, ArrowDownLeft, Sparkles, Radio 
+} from 'lucide-react';
+import { APP_VERSION } from '../../constants/version';
 
 const CirculationDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -31,139 +36,190 @@ const CirculationDashboard = () => {
   }, [timeframe]);
 
   if (loading) {
-    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>;
+    return (
+      <div className="flex flex-col h-[70vh] items-center justify-center gap-3">
+        <div className="w-10 h-10 border-4 border-indigo-600/20 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+          Loading Circulation Command Center v{APP_VERSION}...
+        </p>
+      </div>
+    );
   }
 
   const healthScore = stats ? Math.max(0, 100 - ((stats.overdueBooks || 0) * 2) - ((stats.pendingFines || 0) / 1000)) : 100;
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-[#0f1117] dark:to-gray-900 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-              <span className="mr-3">🏛️</span> Circulation Command Center
-            </h1>
-            <p className="text-gray-500 mt-2 dark:text-gray-400">Real-time operational view of LibraryOS.</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <select 
-                className="appearance-none bg-white/80 backdrop-blur-md border border-slate-200 text-slate-700 py-2.5 pl-10 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium shadow-sm cursor-pointer"
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value)}
-              >
-                <option value="7">Last 7 Days</option>
-                <option value="30">Last 30 Days</option>
-                <option value="90">Last 3 Months</option>
-              </select>
-              <Calendar className="absolute left-3 top-3 text-slate-400" size={18} />
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1500px] mx-auto space-y-6">
+      
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+              Circulation Desk v{APP_VERSION}
+            </span>
+            <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Live Circulation Active</span>
             </div>
-            <Link to="/circulation/feed" className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-bold border border-indigo-200 hover:bg-indigo-100 transition flex items-center">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 mr-2 animate-pulse"></span>
-              Live Feed
-            </Link>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            Circulation Command Center
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            Real-time telemetry on book issues, returns, reservations, and library inventory health.
+          </p>
         </div>
 
-        {/* Top KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
-          {[
-            { title: "Total Books", value: stats?.totalBooks || 0, icon: Book, color: "blue" },
-            { title: "Members", value: stats?.totalMembers || 0, icon: Users, color: "indigo" },
-            { title: "Active Issues", value: stats?.activeIssues || 0, icon: Clock, color: "sky" },
-            { title: "Overdue", value: stats?.overdueBooks || 0, icon: AlertTriangle, color: "rose" },
-            { title: "Revenue", value: `₹${(stats?.totalRevenue || 0).toLocaleString()}`, icon: IndianRupee, color: "emerald" },
-            { title: "Pending Fines", value: `₹${(stats?.pendingFines || 0).toLocaleString()}`, icon: FileText, color: "amber" },
-            { title: "Reservations", value: stats?.pendingReservations || 0, icon: CalendarCheck, color: "purple" },
-          ].map((kpi, index) => {
-            const Icon = kpi.icon;
-            const colorMap = {
-              blue: { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400' },
-              indigo: { bg: 'bg-indigo-50 dark:bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400' },
-              sky: { bg: 'bg-sky-50 dark:bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400' },
-              rose: { bg: 'bg-rose-50 dark:bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400' },
-              emerald: { bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400' },
-              amber: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400' },
-              purple: { bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-600 dark:text-purple-400' },
-            };
-            const colors = colorMap[kpi.color];
+        {/* Action Controls & Quick Actions */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative">
+            <select 
+              className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 py-2 pl-8 pr-7 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs font-semibold shadow-sm cursor-pointer"
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+            >
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
+            </select>
+            <Calendar className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" size={14} />
+          </div>
 
-            return (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-2.5 rounded-xl ${colors.bg} ${colors.text}`}>
-                    <Icon size={20} strokeWidth={2.5} />
-                  </div>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{kpi.value}</h2>
-                  <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 mt-1">{kpi.title}</p>
+          <Link 
+            to="/issues/new" 
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition active:scale-95"
+          >
+            <ArrowUpRight size={14} />
+            <span>Issue Book</span>
+          </Link>
+
+          <Link 
+            to="/returns/new" 
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 transition"
+          >
+            <ArrowDownLeft size={14} />
+            <span>Return Book</span>
+          </Link>
+
+          <Link 
+            to="/circulation/feed" 
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-500/20 bg-rose-50/50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100/50 transition"
+          >
+            <Radio size={14} className="animate-pulse" />
+            <span>Live Feed</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Top 7 KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        {[
+          { title: "Total Books", value: stats?.totalBooks || 0, icon: Book, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/60" },
+          { title: "Members", value: stats?.totalMembers || 0, icon: Users, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/60" },
+          { title: "Active Issues", value: stats?.activeIssues || 0, icon: Clock, color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-50 dark:bg-sky-950/60" },
+          { title: "Overdue", value: stats?.overdueBooks || 0, icon: AlertTriangle, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/60" },
+          { title: "Revenue", value: `₹${(stats?.totalRevenue || 0).toLocaleString()}`, icon: IndianRupee, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-950/60" },
+          { title: "Pending Fines", value: `₹${(stats?.pendingFines || 0).toLocaleString()}`, icon: FileText, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/60" },
+          { title: "Reservations", value: stats?.pendingReservations || 0, icon: CalendarCheck, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/60" },
+        ].map((kpi, index) => {
+          const Icon = kpi.icon;
+          return (
+            <div key={index} className="glass-card rounded-2xl p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <div className={`p-2 rounded-xl ${kpi.bg} ${kpi.color}`}>
+                  <Icon size={16} />
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">{kpi.value}</h2>
+                <p className="text-[11px] font-semibold text-slate-400 tracking-wide mt-0.5 uppercase">{kpi.title}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Chart */}
-          {/* Main Chart */}
-          <div className="lg:col-span-2 relative overflow-hidden bg-white/70 dark:bg-gray-800/50 backdrop-blur-2xl rounded-[1.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-black/20 border border-white/60 dark:border-gray-700/50 hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] transition-all duration-300">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-            <h3 className="font-bold text-gray-900 dark:text-white mb-6 relative z-10 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-indigo-500" /> Circulation Trends (Last {timeframe} Days)
+      {/* Main Grid: Chart & Health Telemetry */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Main Chart */}
+        <div className="lg:col-span-2 glass-panel rounded-2xl p-6 relative overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              <span>Circulation Trends (Last {timeframe} Days)</span>
             </h3>
-            <div className="h-72 relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" className="dark:stroke-gray-700" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12, fontWeight: 600}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12, fontWeight: 600}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
-                    cursor={{ stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '4 4' }}
-                  />
-                  <Line type="monotone" dataKey="issues" stroke="#3b82f6" strokeWidth={4} dot={{r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 7, strokeWidth: 0, fill: '#2563eb', shadow: '0px 0px 10px #3b82f6'}} name="Issues" />
-                  <Line type="monotone" dataKey="returns" stroke="#10b981" strokeWidth={4} dot={{r: 5, fill: '#10b981', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 7, strokeWidth: 0, fill: '#059669', shadow: '0px 0px 10px #10b981'}} name="Returns" />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-semibold">
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Issues
+              </span>
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Returns
+              </span>
             </div>
           </div>
 
-          {/* Health Score */}
-          <div className="bg-white/70 dark:bg-gray-800/50 backdrop-blur-2xl rounded-[1.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-black/20 border border-white/60 dark:border-gray-700/50 flex flex-col items-center justify-center relative overflow-hidden group hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] transition-all duration-300">
-            <div className={`absolute top-0 right-0 p-4 text-7xl opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500 ${healthScore > 80 ? 'text-green-500' : healthScore > 50 ? 'text-yellow-500' : 'text-red-500'}`}>❤️</div>
-            <div className={`absolute -left-10 -bottom-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${healthScore > 80 ? 'bg-green-500' : healthScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
-            
-            <h3 className="font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest text-xs mb-4 w-full text-left relative z-10">Library Health Score</h3>
-            
-            <div className="relative w-48 h-48 flex items-center justify-center my-4 z-10">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="96" cy="96" r="80" stroke="currentColor" strokeWidth="14" fill="transparent" className="text-gray-100 dark:text-gray-700/50" />
-                <circle 
-                  cx="96" 
-                  cy="96" 
-                  r="80" 
-                  stroke="currentColor" 
-                  strokeWidth="14" 
-                  fill="transparent" 
-                  strokeLinecap="round"
-                  strokeDasharray="502" 
-                  strokeDashoffset={502 - (502 * healthScore) / 100}
-                  className={`transition-all duration-1500 ease-out ${healthScore > 80 ? 'text-emerald-500' : healthScore > 50 ? 'text-amber-500' : 'text-rose-500'}`} 
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} dy={8} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#0f172a', 
+                    borderRadius: '12px', 
+                    border: '1px solid #334155',
+                    color: '#fff',
+                    fontSize: '12px'
+                  }}
                 />
-              </svg>
-              <div className="absolute flex flex-col items-center justify-center">
-                <span className={`text-6xl font-black ${healthScore > 80 ? 'text-emerald-600 dark:text-emerald-400' : healthScore > 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>{Math.round(healthScore)}</span>
-                <span className="text-sm font-bold text-gray-400 dark:text-gray-500 tracking-wider">/ 100</span>
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-600 dark:text-gray-300 text-center mt-4 font-medium relative z-10 bg-gray-50/50 dark:bg-gray-800/50 px-4 py-2 rounded-xl border border-gray-100 dark:border-gray-700/50">
-              {healthScore > 80 ? "Operations are running smoothly 🚀" : "Attention needed on overdues or fines ⚠️"}
-            </p>
+                <Line type="monotone" dataKey="issues" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 6 }} name="Issues" />
+                <Line type="monotone" dataKey="returns" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} name="Returns" />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Library Health Score Gauge */}
+        <div className="glass-panel rounded-2xl p-6 flex flex-col items-center justify-between relative overflow-hidden">
+          <div className="w-full flex items-center justify-between mb-2">
+            <h3 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider">
+              Health Telemetry
+            </h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+              Live Audit
+            </span>
+          </div>
+          
+          <div className="relative w-44 h-44 flex items-center justify-center my-3">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle cx="88" cy="88" r="72" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+              <circle 
+                cx="88" 
+                cy="88" 
+                r="72" 
+                stroke="currentColor" 
+                strokeWidth="12" 
+                fill="transparent" 
+                strokeLinecap="round"
+                strokeDasharray="452" 
+                strokeDashoffset={452 - (452 * healthScore) / 100}
+                className={`transition-all duration-1000 ease-out ${healthScore > 80 ? 'text-emerald-500' : healthScore > 50 ? 'text-amber-500' : 'text-rose-500'}`} 
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center justify-center">
+              <span className={`text-4xl font-black ${healthScore > 80 ? 'text-emerald-600 dark:text-emerald-400' : healthScore > 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {Math.round(healthScore)}
+              </span>
+              <span className="text-xs font-semibold text-slate-400 tracking-wider">/ 100</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-center font-medium px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 w-full">
+            {healthScore > 80 ? "Library operations running optimal 🚀" : "Attention needed on overdues or fines ⚠️"}
+          </p>
         </div>
 
       </div>
@@ -172,3 +228,4 @@ const CirculationDashboard = () => {
 };
 
 export default CirculationDashboard;
+

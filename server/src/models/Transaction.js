@@ -40,4 +40,8 @@ const transactionSchema = new mongoose.Schema({
   overdueAlertSent: { type: Boolean, default: false }
 }, { timestamps: true });
 
+transactionSchema.index({ libraryId: 1, status: 1, dueDate: 1 });
+transactionSchema.index({ libraryId: 1, issueDate: -1 });
+transactionSchema.index({ libraryId: 1, memberId: 1 });
+
 module.exports = mongoose.model('Transaction', transactionSchema);

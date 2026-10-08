@@ -176,4 +176,7 @@ try {
   console.log("Could not initialize BullMQ Worker (Redis might be missing):", error.message);
 }
 
-module.exports = worker;
+module.exports = {
+  worker,
+  processRow
+};

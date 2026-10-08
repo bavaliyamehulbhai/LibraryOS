@@ -43,12 +43,10 @@ const inventorySchema = new mongoose.Schema({
 inventorySchema.index({ bookId: 1, libraryId: 1 }, { unique: true });
 
 // Ensure consistency
-inventorySchema.pre("save", function(next) {
-  const sum = this.availableCopies + this.issuedCopies + this.reservedCopies + this.damagedCopies + this.lostCopies;
+inventorySchema.pre("save", function() {
+  const sum = (this.availableCopies || 0) + (this.issuedCopies || 0) + (this.reservedCopies || 0) + (this.damagedCopies || 0) + (this.lostCopies || 0);
   if (this.totalCopies !== sum) {
-    next(new Error(`Inventory inconsistency detected. Total (${this.totalCopies}) != Sum of parts (${sum})`));
-  } else {
-    next();
+    throw new Error(`Inventory inconsistency detected. Total (${this.totalCopies}) != Sum of parts (${sum})`);
   }
 });
 

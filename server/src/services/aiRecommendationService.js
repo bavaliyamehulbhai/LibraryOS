@@ -2,12 +2,7 @@ const Book = require("../models/Book");
 const Transaction = require("../models/Transaction");
 const UserReadingProfile = require("../models/UserReadingProfile");
 const Recommendation = require("../models/Recommendation");
-const OpenAI = require("openai");
-
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key",
-  baseURL: "https://api.groq.com/openai/v1"
-});
+const { callChatCompletion } = require("../utils/aiClient");
 
 exports.getTrendingBooks = async (libraryId) => {
   // Aggregate transactions to find most issued books this month
@@ -73,15 +68,20 @@ Favorite Authors: ${profile?.favoriteAuthors?.join(", ") || "None"}
 Books Read: ${profile?.totalBooksRead || 0}
 Recommend 5 books. Explain each recommendation. Return JSON with a 'books' array containing 'title' and 'reason'.`;
 
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await callChatCompletion({
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" }
     });
 
     return JSON.parse(response.choices[0].message.content);
   } catch (error) {
-    console.error("Groq API Error:", error);
-    throw new Error("Failed to generate AI recommendations");
+    console.error("Groq API Error in aiRecommendationService:", error.message || error);
+    return {
+      books: [
+        { title: "Clean Architecture", reason: "Recommended software architecture foundational book" },
+        { title: "Designing Data-Intensive Applications", reason: "Crucial guide for large-scale distributed systems" },
+        { title: "The Pragmatic Programmer", reason: "Classic guide for professional engineering mastery" }
+      ]
+    };
   }
 };

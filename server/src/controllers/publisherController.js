@@ -2,6 +2,7 @@ const publisherService = require("../services/publisherService");
 const Publisher = require("../models/Publisher");
 const { createPublisherSchema, updatePublisherSchema } = require("../validators/publisherValidator");
 const AuditLog = require("../models/AuditLog");
+const cache = require("../utils/cache");
 
 exports.createPublisher = async (req, res) => {
   try {
@@ -19,6 +20,7 @@ exports.createPublisher = async (req, res) => {
 
     const publisherData = { ...value, libraryId };
     const publisher = await publisherService.createPublisher(publisherData);
+    await cache.del(`publishers:${libraryId}`);
 
     await AuditLog.create({
       action: "PUBLISHER_CREATED",
@@ -37,8 +39,14 @@ exports.createPublisher = async (req, res) => {
 exports.getPublishers = async (req, res) => {
   try {
     const libraryId = req.user.libraryId;
+    const cacheKey = `publishers:${libraryId}:${JSON.stringify(req.query)}`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return res.status(200).json(cached);
+
     const result = await publisherService.getPublishers(req.query, libraryId);
-    res.status(200).json({ success: true, ...result });
+    const responseData = { success: true, ...result };
+    await cache.set(cacheKey, responseData, 120);
+    res.status(200).json(responseData);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -84,6 +92,8 @@ exports.updatePublisher = async (req, res) => {
       return res.status(404).json({ success: false, message: "Publisher not found" });
     }
 
+    await cache.del(`publishers:${libraryId}`);
+
     await AuditLog.create({
       action: "PUBLISHER_UPDATED",
       entity: "PUBLISHER",
@@ -106,6 +116,8 @@ exports.deletePublisher = async (req, res) => {
     if (!publisher) {
       return res.status(404).json({ success: false, message: "Publisher not found" });
     }
+
+    await cache.del(`publishers:${libraryId}`);
 
     await AuditLog.create({
       action: "PUBLISHER_DELETED",

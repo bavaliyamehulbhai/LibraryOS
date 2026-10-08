@@ -1,10 +1,15 @@
 const { registerCron } = require("../services/jobManager");
+const Otp = require("../models/Otp");
+const PasswordReset = require("../models/PasswordReset");
 
 const processCleanup = async () => {
-  // Delete Expired OTPs from DB
-  // Delete Old Sessions
-  // Delete Temporary Files
-  // console.log("[Job] Processed Cleanup successfully.");
+  try {
+    const now = new Date();
+    await Otp.deleteMany({ expiresAt: { $lt: now } });
+    await PasswordReset.deleteMany({ expiresAt: { $lt: now } });
+  } catch (err) {
+    console.error("[CleanupJob] Error during system cleanup:", err.message);
+  }
 };
 
 const startCleanupJob = () => {

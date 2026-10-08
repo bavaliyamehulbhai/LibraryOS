@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { 
+  DollarSign, AlertCircle, CheckCircle2, Clock, Plus, 
+  Search, ShieldAlert, Sparkles, Filter, Receipt, 
+  ChevronRight, ArrowRight, User 
+} from 'lucide-react';
 
 const Fines = () => {
   const [fines, setFines] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   
   // Waive Modal State
   const [waiveModalOpen, setWaiveModalOpen] = useState(false);
@@ -69,12 +76,11 @@ const Fines = () => {
     
     setManualSubmitting(true);
     try {
-      // Find Member ID first
-      const memRes = await api.get(`/v1/members?search=${manualMemberCode}`);
-      const member = memRes.data?.data?.find(m => m.memberCode === manualMemberCode);
+      const memRes = await api.get(`/v1/members?search=${encodeURIComponent(manualMemberCode.trim())}`);
+      const member = memRes.data?.data?.find(m => m.memberCode?.toLowerCase() === manualMemberCode.trim().toLowerCase()) || memRes.data?.data?.[0];
       
       if (!member) {
-        toast.error("Member not found with this ID.");
+        toast.error("Member not found with this code.");
         setManualSubmitting(false);
         return;
       }
@@ -86,7 +92,7 @@ const Fines = () => {
       });
 
       if (res.data.success) {
-        toast.success("Manual fine generated!");
+        toast.success("Manual fine created successfully!");
         setManualModalOpen(false);
         fetchFines();
       }
@@ -97,147 +103,281 @@ const Fines = () => {
     }
   };
 
+  const totalPending = fines.filter(f => f.status === 'PENDING' || f.status === 'PARTIAL').reduce((acc, f) => acc + (f.pendingAmount || 0), 0);
+  const totalCollected = fines.reduce((acc, f) => acc + (f.paidAmount || 0), 0);
+  const totalWaivedCount = fines.filter(f => f.status === 'WAIVED').length;
+  const collectionRate = totalCollected + totalPending > 0 ? Math.round((totalCollected / (totalCollected + totalPending)) * 100) : 100;
+
+  const filteredFines = fines.filter(f => {
+    const matchesSearch = 
+      f.fineCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (f.memberId?.firstName + ' ' + f.memberId?.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.memberId?.memberCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.reason?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === 'ALL' || f.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-[#0f1117] dark:to-gray-900 min-h-screen relative">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto min-h-screen">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-500/25">
+            <DollarSign className="w-6 h-6" />
+          </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-              <span className="mr-3">💰</span> Fine Management
-            </h1>
-            <p className="text-gray-500 mt-2 dark:text-gray-400">Track penalties, manage waivers, and enforce compliance.</p>
-          </div>
-          <div className="flex space-x-4">
-            <button 
-              onClick={() => {
-                setManualMemberCode(""); setManualAmount(""); setManualReason(""); setManualModalOpen(true);
-              }} 
-              className="px-6 py-3 bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-700 dark:to-gray-600 text-white rounded-xl hover:from-black hover:to-gray-900 transition-all font-bold shadow-md hover:shadow-lg flex items-center hover:-translate-y-0.5"
-            >
-              <span className="mr-2">➕</span> Manual Fine
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 relative z-10">
-          <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800 p-8 rounded-3xl border border-white/50 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-300">
-              <span className="text-6xl">🔴</span>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                Fine & Penalty Ledger
+              </h1>
+              <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-rose-100 text-rose-800 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20">
+                Revenue Compliance
+              </span>
             </div>
-            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4 relative z-10">Total Pending</h3>
-            <p className="text-5xl font-black text-red-600 dark:text-red-400 relative z-10">
-              ₹{fines.filter(f => f.status === 'PENDING' || f.status === 'PARTIAL').reduce((acc, f) => acc + f.pendingAmount, 0)}
-            </p>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800 p-8 rounded-3xl border border-white/50 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-300">
-              <span className="text-6xl">🟢</span>
-            </div>
-            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4 relative z-10">Total Collected</h3>
-            <p className="text-5xl font-black text-green-600 dark:text-green-400 relative z-10">
-              ₹{fines.reduce((acc, f) => acc + f.paidAmount, 0)}
-            </p>
-          </div>
-          <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800 p-8 rounded-3xl border border-white/50 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-300">
-              <span className="text-6xl">⚪</span>
-            </div>
-            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4 relative z-10">Total Waived</h3>
-            <p className="text-5xl font-black text-gray-900 dark:text-white relative z-10">
-              {fines.filter(f => f.status === 'WAIVED').length} <span className="text-xl text-gray-400">Fines</span>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Track overdue penalties, process policy waivers, and reconcile fine collections
             </p>
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl dark:bg-gray-800 rounded-3xl shadow-lg border border-white/50 dark:border-gray-700 overflow-hidden relative z-10">
-          {loading ? (
-            <div className="p-12 flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-white/50 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-xs font-black uppercase tracking-widest border-b border-gray-200 dark:border-gray-700">
-                    <th className="p-5">Fine Code</th>
-                    <th className="p-5">Member</th>
-                    <th className="p-5">Type & Reason</th>
-                    <th className="p-5">Total</th>
-                    <th className="p-5">Pending</th>
-                    <th className="p-5">Status</th>
-                    <th className="p-5 text-right">Actions</th>
+        <button 
+          onClick={() => {
+            setManualMemberCode(""); setManualAmount(""); setManualReason(""); setManualModalOpen(true);
+          }} 
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white dark:from-white dark:to-slate-200 dark:text-slate-900 dark:hover:from-slate-100 text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Manual Penalty</span>
+        </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total Outstanding</div>
+          <div className="text-3xl font-black text-rose-600 dark:text-rose-400">
+            ₹{totalPending.toLocaleString()}
+          </div>
+          <p className="text-[11px] text-rose-600/80 dark:text-rose-400/80 mt-1">Pending student settlement</p>
+        </div>
+
+        <div className="glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total Revenue Collected</div>
+          <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+            <span>₹{totalCollected.toLocaleString()}</span>
+          </div>
+          <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-1">Deposited into library treasury</p>
+        </div>
+
+        <div className="glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Waived Penalties</div>
+          <div className="text-3xl font-black text-slate-900 dark:text-white">
+            {totalWaivedCount} <span className="text-xs font-normal text-slate-400">Records</span>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">Authorized admin exceptions</p>
+        </div>
+
+        <div className="glass-card p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md">
+          <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Collection Efficiency</div>
+          <div className="text-3xl font-black text-blue-600 dark:text-blue-400">
+            {collectionRate}%
+          </div>
+          <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80 mt-1">Settled vs total dues ratio</p>
+        </div>
+      </div>
+
+      {/* Main Table Card */}
+      <div className="glass-card rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-sm overflow-hidden">
+        
+        {/* Search & Filter Bar */}
+        <div className="p-4 border-b border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-800/40">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input 
+              type="text" 
+              placeholder="Search fine code, member name, ID or reason..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-8 py-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-inner"
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-white/10 self-start sm:self-auto overflow-x-auto">
+            {['ALL', 'PENDING', 'PARTIAL', 'PAID', 'WAIVED'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+                  statusFilter === status
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Table */}
+        {loading ? (
+          <div className="p-16 flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-3 border-rose-600/20 border-t-rose-600 mb-2"></div>
+            <p className="text-xs text-slate-400">Loading fine ledger...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-white/10 uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                <tr>
+                  <th className="px-5 py-3.5">Fine ID</th>
+                  <th className="px-5 py-3.5">Patron Member</th>
+                  <th className="px-4 py-3.5">Type & Reason</th>
+                  <th className="px-4 py-3.5">Total Dues</th>
+                  <th className="px-4 py-3.5">Outstanding</th>
+                  <th className="px-4 py-3.5">Status</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                {filteredFines.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="p-10 text-center text-slate-400">
+                      No fine records found matching your filters.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-gray-700 text-sm">
-                  {fines.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="p-8 text-center text-gray-500 dark:text-gray-400">
-                        No fine records found.
+                ) : (
+                  filteredFines.map(fine => (
+                    <tr 
+                      key={fine._id} 
+                      className="hover:bg-rose-50/20 dark:hover:bg-rose-950/10 transition-colors"
+                    >
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/60 dark:border-white/5">
+                          {fine.fineCode || fine._id?.slice(-8).toUpperCase()}
+                        </span>
                       </td>
-                    </tr>
-                  ) : (
-                    fines.map(fine => (
-                      <tr key={fine._id} className="hover:bg-white/90 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-50 dark:border-gray-700/50 last:border-0 group">
-                        <td className="p-5 font-mono font-bold text-gray-900 dark:text-white">{fine.fineCode}</td>
-                        <td className="p-5">
-                          <div className="font-extrabold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">{fine.memberId?.firstName} {fine.memberId?.lastName}</div>
-                          <div className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 inline-block px-2 py-0.5 rounded mt-1">{fine.memberId?.memberCode}</div>
-                        </td>
-                        <td className="p-5">
-                          <div className="font-bold text-gray-900 dark:text-white">{fine.fineType.replace('_', ' ')}</div>
-                          <div className="text-xs text-gray-500 truncate max-w-xs">{fine.reason}</div>
-                        </td>
-                        <td className="p-5 font-black text-gray-900 dark:text-white text-lg">₹{fine.amount}</td>
-                        <td className="p-5 font-black text-red-600 dark:text-red-400 text-lg">₹{fine.pendingAmount}</td>
-                        <td className="p-5">
-                          <span className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider shadow-sm border ${
-                            fine.status === 'PAID' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30' :
-                            fine.status === 'PENDING' ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30' :
-                            fine.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30' :
-                            'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-400'
-                          }`}>
-                            {fine.status}
-                          </span>
-                        </td>
-                        <td className="p-5 text-right space-x-2">
-                          {(fine.status === 'PENDING' || fine.status === 'PARTIAL') && (
-                            <button onClick={() => openWaiveModal(fine._id)} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-900/50 rounded-lg font-bold text-sm transition-all shadow-sm">
+                      <td className="px-5 py-3.5">
+                        <div className="font-bold text-slate-900 dark:text-white">
+                          {fine.memberId?.firstName} {fine.memberId?.lastName}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono">
+                          {fine.memberId?.memberCode}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">
+                          {fine.fineType?.replace('_', ' ')}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                          {fine.reason || 'Overdue borrowing delay'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 font-bold text-slate-900 dark:text-white">
+                        ₹{fine.amount || 0}
+                      </td>
+                      <td className="px-4 py-3.5 font-black text-rose-600 dark:text-rose-400">
+                        ₹{fine.pendingAmount || 0}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider inline-flex items-center gap-1 ${
+                          fine.status === 'PAID' 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' :
+                          fine.status === 'PENDING' 
+                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20' :
+                          fine.status === 'PARTIAL'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' :
+                            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-white/10'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            fine.status === 'PAID' ? 'bg-emerald-500' :
+                            fine.status === 'PENDING' ? 'bg-rose-500' :
+                            fine.status === 'PARTIAL' ? 'bg-amber-500' : 'bg-slate-400'
+                          }`}></span>
+                          {fine.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        {(fine.status === 'PENDING' || fine.status === 'PARTIAL') && (
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={() => openWaiveModal(fine._id)}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 text-xs font-semibold transition"
+                            >
                               Waive
                             </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                            <Link 
+                              to="/payments"
+                              className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 text-xs font-semibold transition"
+                            >
+                              Settle
+                            </Link>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Waive Modal */}
       {waiveModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white/90 backdrop-blur-xl dark:bg-gray-800 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-white/50 dark:border-gray-700 transform scale-100">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10">
-              <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2"><span className="text-2xl">🪄</span> Waive Fine</h2>
-              <button onClick={() => setWaiveModalOpen(false)} className="text-gray-400 hover:text-gray-600 bg-white dark:bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">✕</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-white/10">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-500" />
+                <span>Waive Overdue Penalty</span>
+              </h2>
+              <button onClick={() => setWaiveModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">✕</button>
             </div>
-            <form onSubmit={handleWaiveSubmit} className="p-8">
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Reason for Waiver</label>
-              <textarea 
-                value={waiveReason}
-                onChange={(e) => setWaiveReason(e.target.value)}
-                placeholder="e.g. Medical emergency, admin approval..."
-                className="w-full p-4 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 mb-6 shadow-inner outline-none transition-all"
-                rows="3"
-                required
-              ></textarea>
-              <div className="flex justify-end space-x-4">
-                <button type="button" onClick={() => setWaiveModalOpen(false)} className="px-6 py-3 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl font-bold dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-all shadow-sm">Cancel</button>
-                <button type="submit" disabled={waiveSubmitting} className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 hover:-translate-y-0.5">
-                  {waiveSubmitting ? 'Processing...' : 'Confirm Waiver'}
+            
+            <form onSubmit={handleWaiveSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Official Waiver Rationale
+                </label>
+                <textarea 
+                  value={waiveReason}
+                  onChange={(e) => setWaiveReason(e.target.value)}
+                  placeholder="e.g. Medical dispensation, exam quarantine, administrator authorization..."
+                  className="w-full p-3 border border-slate-200/80 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-inner"
+                  rows="3"
+                  required
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setWaiveModalOpen(false)} 
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={waiveSubmitting} 
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
+                >
+                  {waiveSubmitting ? 'Recording...' : 'Authorize Waiver'}
                 </button>
               </div>
             </form>
@@ -247,49 +387,68 @@ const Fines = () => {
 
       {/* Manual Fine Modal */}
       {manualModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white/90 backdrop-blur-xl dark:bg-gray-800 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-white/50 dark:border-gray-700 transform scale-100">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gradient-to-r from-gray-50/50 to-slate-50/50 dark:from-gray-800/10 dark:to-slate-800/10">
-              <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2"><span className="text-2xl">➕</span> Create Manual Fine</h2>
-              <button onClick={() => setManualModalOpen(false)} className="text-gray-400 hover:text-gray-600 bg-white dark:bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">✕</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-white/10">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100 dark:border-white/5">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-500" />
+                <span>Issue Disciplinary Fine</span>
+              </h2>
+              <button onClick={() => setManualModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">✕</button>
             </div>
-            <form onSubmit={handleManualSubmit} className="p-8">
-              
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Member ID</label>
-              <input 
-                type="text"
-                value={manualMemberCode}
-                onChange={(e) => setManualMemberCode(e.target.value)}
-                placeholder="LIB-2026-..."
-                className="w-full p-4 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 mb-4 shadow-inner outline-none transition-all"
-                required
-              />
 
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Amount (₹)</label>
-              <input 
-                type="number"
-                value={manualAmount}
-                onChange={(e) => setManualAmount(e.target.value)}
-                placeholder="50"
-                min="1"
-                className="w-full p-4 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 mb-4 shadow-inner outline-none transition-all font-black text-lg"
-                required
-              />
+            <form onSubmit={handleManualSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Member Identification Code</label>
+                <input 
+                  type="text"
+                  value={manualMemberCode}
+                  onChange={(e) => setManualMemberCode(e.target.value)}
+                  placeholder="e.g. LIB-2026-001"
+                  className="w-full p-2.5 border border-slate-200/80 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  required
+                />
+              </div>
 
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Reason</label>
-              <textarea 
-                value={manualReason}
-                onChange={(e) => setManualReason(e.target.value)}
-                placeholder="e.g. Library rule violation..."
-                className="w-full p-4 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 mb-6 shadow-inner outline-none transition-all"
-                rows="2"
-                required
-              ></textarea>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Fine Amount (₹)</label>
+                <input 
+                  type="number"
+                  value={manualAmount}
+                  onChange={(e) => setManualAmount(e.target.value)}
+                  placeholder="100"
+                  min="1"
+                  className="w-full p-2.5 border border-slate-200/80 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  required
+                />
+              </div>
 
-              <div className="flex justify-end space-x-4">
-                <button type="button" onClick={() => setManualModalOpen(false)} className="px-6 py-3 text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl font-bold dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-all shadow-sm">Cancel</button>
-                <button type="submit" disabled={manualSubmitting} className="px-8 py-3 bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-700 dark:to-gray-600 text-white font-bold rounded-xl hover:from-black hover:to-gray-900 transition-all shadow-md hover:shadow-lg disabled:opacity-50 hover:-translate-y-0.5">
-                  {manualSubmitting ? 'Creating...' : 'Create Fine'}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Violation Reason</label>
+                <textarea 
+                  value={manualReason}
+                  onChange={(e) => setManualReason(e.target.value)}
+                  placeholder="e.g. Lost catalog card, damaged book spine, delayed return..."
+                  className="w-full p-2.5 border border-slate-200/80 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="2"
+                  required
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setManualModalOpen(false)} 
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={manualSubmitting} 
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
+                >
+                  {manualSubmitting ? 'Issuing...' : 'Create Fine Entry'}
                 </button>
               </div>
             </form>

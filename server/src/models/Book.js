@@ -67,6 +67,9 @@ bookSchema.index({ isbn: 1, libraryId: 1 }, { unique: true });
 bookSchema.index({ title: "text", isbn: "text", description: "text" });
 
 // Performance indexes
+bookSchema.index({ libraryId: 1, isActive: 1, createdAt: -1 });
+bookSchema.index({ libraryId: 1, category: 1 });
+bookSchema.index({ libraryId: 1, author: 1 });
 bookSchema.index({ title: 1 });
 bookSchema.index({ author: 1 });
 bookSchema.index({ category: 1 });

@@ -102,6 +102,8 @@ memberSchema.virtual("fullName").get(function () {
 });
 
 // Indexes for search performance
+memberSchema.index({ libraryId: 1, status: 1, createdAt: -1 });
+memberSchema.index({ libraryId: 1, memberType: 1 });
 memberSchema.index({ firstName: "text", lastName: "text", email: "text", phone: "text", memberCode: "text" });
 
 module.exports = mongoose.model("Member", memberSchema);

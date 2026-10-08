@@ -7,147 +7,117 @@ const MemberCard = require("../models/MemberCard");
 exports.getDashboard = async (libraryId, memberProfileId) => {
   if (!memberProfileId) throw new Error("User does not have an associated member profile");
 
-  // 1. Fetch Member Profile
-  let member = await Member.findOne({ _id: memberProfileId, libraryId })
-    .populate("membershipPlanId");
+  // 1. Fetch Member Profile (safe lookup by ID)
+  let member = await Member.findById(memberProfileId).populate("membershipPlanId");
+  if (!member && libraryId) {
+    member = await Member.findOne({ _id: memberProfileId, libraryId }).populate("membershipPlanId");
+  }
   
   if (!member) throw new Error("Member profile not found");
 
-  // --- Auto-Seed Realistic Data if missing (For existing members like Aarav) ---
+  const effectiveLibraryId = member.libraryId || libraryId;
+
+  // --- Auto-Seed Plan & Card if missing ---
   if (!member.membershipPlanId) {
-     try {
-       const MembershipPlan = require("../models/MembershipPlan");
-       let plan = await MembershipPlan.findOne({ libraryId, status: "ACTIVE" });
-       
-       if (!plan) {
-          plan = await MembershipPlan.create({
-             libraryId,
-             name: "Premium Annual Membership",
-             description: "Full access to all library resources and digital media.",
-             borrowLimit: 10,
-             issueDuration: 14,
-             finePerDay: 5,
-             planType: "PREMIUM",
-             status: "ACTIVE"
-          });
-       }
+    try {
+      let plan = await MembershipPlan.findOne({ libraryId: effectiveLibraryId, status: "ACTIVE" });
+      if (!plan) {
+        plan = await MembershipPlan.findOne({ libraryId: effectiveLibraryId });
+      }
+      if (!plan) {
+        plan = await MembershipPlan.create({
+          libraryId: effectiveLibraryId,
+          name: "Standard Annual Membership",
+          description: "Full access to library resources and circulation catalog.",
+          borrowLimit: 10,
+          issueDuration: 14,
+          finePerDay: 5,
+          planType: "STUDENT",
+          status: "ACTIVE"
+        });
+      }
 
-       member.membershipPlanId = plan._id;
-       const expiryDate = new Date();
-       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-       member.cardExpiryDate = expiryDate;
-       await member.save();
-       
-       // Re-fetch to populate plan
-       member = await Member.findOne({ _id: memberProfileId, libraryId }).populate("membershipPlanId");
-
-       const MemberCard = require("../models/MemberCard");
-       const existingCard = await MemberCard.findOne({ memberId: member._id });
-       if (!existingCard) {
-           await MemberCard.create({
-              memberId: member._id,
-              libraryId,
-              cardNumber: "LIB-" + member.memberCode,
-              barcode: "LIB-" + member.memberCode,
-              qrCode: "LIB-" + member.memberCode,
-              issueDate: new Date(),
-              expiryDate,
-              status: "ACTIVE"
-           });
-       }
-
-       const Transaction = require("../models/Transaction");
-       const Fine = require("../models/Fine");
-       const Book = require("../models/Book");
-       
-       const existingTx = await Transaction.findOne({ memberId: member._id });
-       if (!existingTx) {
-          const book = await Book.findOne({ libraryId });
-          if (book) {
-             const dueDate = new Date();
-             dueDate.setDate(dueDate.getDate() - 2);
-             
-             const tx = await Transaction.create({
-                memberId: member._id,
-                libraryId,
-                bookId: book._id,
-                issueDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-                dueDate,
-                status: "OVERDUE",
-                transactionType: "ISSUE"
-             });
-             
-             await Fine.create({
-                memberId: member._id,
-                libraryId,
-                transactionId: tx._id,
-                amount: 10,
-                pendingAmount: 10,
-                reason: "Overdue book return",
-                status: "PENDING"
-             });
-          }
-       }
-     } catch (seedError) {
-       console.error("Failed to auto-seed realistic data for member:", seedError);
-     }
+      member.membershipPlanId = plan._id;
+      await member.save();
+      member = await Member.findById(memberProfileId).populate("membershipPlanId");
+    } catch (seedError) {
+      console.error("Failed to auto-seed plan for member:", seedError);
+    }
   }
-  // --- End Auto-Seed ---
 
   // 2. Fetch Active Card
-  const activeCard = await MemberCard.findOne({ memberId: memberProfileId, libraryId, status: "ACTIVE" });
+  let activeCard = await MemberCard.findOne({ memberId: member._id, status: "ACTIVE" });
+  if (!activeCard) {
+    activeCard = await MemberCard.findOne({ memberId: member._id });
+  }
+
+  if (!activeCard && effectiveLibraryId) {
+    try {
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      activeCard = await MemberCard.create({
+        memberId: member._id,
+        libraryId: effectiveLibraryId,
+        cardNumber: member.memberCode || "LIB-" + Date.now(),
+        barcode: member.memberCode || "LIB-" + Date.now(),
+        qrCode: member.memberCode || "LIB-" + Date.now(),
+        issueDate: new Date(),
+        expiryDate,
+        status: "ACTIVE"
+      });
+    } catch (e) {
+      console.warn("Card creation skipped:", e.message);
+    }
+  }
 
   // 3. Fetch Issued Books
   const issuedBooks = await Transaction.find({ 
-    memberId: memberProfileId, 
-    libraryId, 
+    memberId: member._id, 
     status: { $in: ["ISSUED", "RENEWED", "OVERDUE"] } 
   }).populate("bookId").populate("bookCopyId").sort({ dueDate: 1 });
 
   // 4. Fetch Fines
   const pendingFines = await Fine.find({
-    memberId: memberProfileId,
-    libraryId,
-    status: { $in: ["PENDING", "PARTIAL"] }
+    memberId: member._id,
+    status: { $in: ["PENDING", "PARTIAL", "UNPAID"] }
   });
   
-  const totalPendingFine = pendingFines.reduce((acc, fine) => acc + fine.pendingAmount, 0);
+  const totalPendingFine = pendingFines.reduce((acc, fine) => acc + (fine.pendingAmount || 0), 0);
 
   // 5. Fetch Reservations
   const Reservation = require("../models/Reservation");
   const reservations = await Reservation.find({ 
-    memberId: memberProfileId, 
-    libraryId,
-    status: { $in: ["PENDING", "READY"] }
+    memberId: member._id, 
+    status: { $in: ["PENDING", "READY"] } 
   }).populate("bookId").sort({ createdAt: -1 });
   
-  // 6. Notifications (Placeholder for Phase 14 Notifications)
+  // 6. Notifications
   const notifications = [
-    { id: 1, type: "INFO", message: "Welcome to your new Member Dashboard!", date: new Date() }
+    { id: 1, type: "INFO", message: "Welcome to your Member Dashboard!", date: new Date() }
   ];
 
   return {
     profile: {
       id: member._id,
-      name: `${member.firstName} ${member.lastName}`,
-      memberCode: member.memberCode,
+      name: `${member.firstName || ''} ${member.lastName || ''}`.trim() || "Member",
+      memberCode: member.memberCode || "MEM-001",
       email: member.email,
-      phone: member.phone,
-      status: member.status,
+      phone: member.phone || "N/A",
+      status: member.status || "ACTIVE",
       profileImage: member.profileImage
     },
     plan: member.membershipPlanId ? {
       name: member.membershipPlanId.name,
-      borrowLimit: member.membershipPlanId.borrowLimit,
-      issueDuration: member.membershipPlanId.issueDuration,
-      finePerDay: member.membershipPlanId.finePerDay,
-      expiryDate: member.cardExpiryDate
+      borrowLimit: member.membershipPlanId.borrowLimit || 5,
+      issueDuration: member.membershipPlanId.issueDuration || 14,
+      finePerDay: member.membershipPlanId.finePerDay || 5,
+      expiryDate: activeCard?.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
     } : null,
     card: activeCard ? {
       cardNumber: activeCard.cardNumber,
       barcode: activeCard.barcode,
       qrCode: activeCard.qrCode,
-      status: activeCard.status,
+      status: activeCard.status || "ACTIVE",
       issueDate: activeCard.issueDate,
       expiryDate: activeCard.expiryDate
     } : null,
@@ -157,6 +127,7 @@ exports.getDashboard = async (libraryId, memberProfileId) => {
       reservationsCount: reservations.length
     },
     issuedBooks,
+    pendingFines,
     reservations,
     notifications
   };
@@ -165,7 +136,6 @@ exports.getDashboard = async (libraryId, memberProfileId) => {
 exports.getBorrowStats = async (libraryId, memberProfileId) => {
   const history = await Transaction.find({
     memberId: memberProfileId,
-    libraryId,
     status: "RETURNED"
   }).populate("bookId");
 
@@ -177,8 +147,7 @@ exports.getBorrowStats = async (libraryId, memberProfileId) => {
 
 exports.getFinesHistory = async (libraryId, memberProfileId) => {
   return await Fine.find({
-    memberId: memberProfileId,
-    libraryId
+    memberId: memberProfileId
   }).populate({
     path: "transactionId",
     populate: { path: "bookId" }

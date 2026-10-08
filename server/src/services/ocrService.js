@@ -1,9 +1,4 @@
-const OpenAI = require("openai");
-
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key",
-  baseURL: "https://api.groq.com/openai/v1"
-});
+const { callChatCompletion } = require("../utils/aiClient");
 
 exports.detectCategoryAndCorrect = async (bookData) => {
   if (!process.env.GROQ_API_KEY) {
@@ -27,8 +22,7 @@ Respond strictly in JSON format:
   "category": "CategoryName"
 }`;
 
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await callChatCompletion({
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" }
     });
@@ -43,7 +37,7 @@ Respond strictly in JSON format:
     };
 
   } catch (error) {
-    console.error("Grok AI Metadata Error:", error.message);
+    console.error("Groq AI Metadata Error in ocrService:", error.message);
     return { ...bookData, category: "Uncategorized" };
   }
 };

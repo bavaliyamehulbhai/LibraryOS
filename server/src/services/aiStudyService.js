@@ -1,10 +1,5 @@
 const StudyProfile = require("../models/StudyProfile");
-const OpenAI = require("openai");
-
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key",
-  baseURL: "https://api.groq.com/openai/v1"
-});
+const { callChatCompletion } = require("../utils/aiClient");
 
 exports.getOrCreateProfile = async (userId, libraryId) => {
   let profile = await StudyProfile.findOne({ userId });
@@ -79,8 +74,7 @@ Topic: "${topic}"`;
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await callChatCompletion({
       messages: [{ role: "user", content: prompt }]
     });
 

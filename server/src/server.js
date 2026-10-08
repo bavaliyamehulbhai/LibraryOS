@@ -1,4 +1,4 @@
-// touched
+// restart trigger - client defined fixed
 require("dotenv").config({ path: require('path').resolve(__dirname, '../.env') });
 const http = require("http");
 const app = require("./app");
@@ -6,7 +6,14 @@ const logger = require("./utils/logger");
 const connectDB = require("./config/db");
 const socket = require("./socket");
 
-connectDB();
+connectDB().then(async () => {
+  try {
+    const seedBooks = require("./seeders/bookSeeder");
+    await seedBooks();
+  } catch (err) {
+    console.error("[Seeder] Error auto-seeding books:", err.message);
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 
@@ -15,6 +22,22 @@ const server = http.createServer(app);
 const io = socket.init(server);
 io.on("connection", (client) => {
   console.log("Client connected via socket");
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`[CRITICAL] Port ${PORT} is already in use. Please terminate existing node processes.`);
+  } else {
+    console.error(`[Server Error]`, err);
+  }
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[Unhandled Rejection at]", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("[Uncaught Exception]", err);
 });
 
 server.listen(PORT, () => {
@@ -57,5 +80,5 @@ cron.schedule("59 23 * * *", async () => {
   }
 });
 
-// touched again!!!
-// touching server.js to force nodemon restart
+// Server export for testing / cluster
+module.exports = server;

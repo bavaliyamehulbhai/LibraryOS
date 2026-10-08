@@ -16,5 +16,6 @@ const shelfSchema = new mongoose.Schema(
 
 // Compound index to ensure uniqueness of a shelf code within a library
 shelfSchema.index({ libraryId: 1, shelfCode: 1 }, { unique: true });
+shelfSchema.index({ libraryId: 1, category: 1 });
 
 module.exports = mongoose.model("Shelf", shelfSchema);

@@ -3,6 +3,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../context/ThemeContext';
 import { useFeatures } from '../common/FeatureGuard';
+import WhatsNewModal from '../common/WhatsNewModal';
+import { ChevronDown } from 'lucide-react';
 
 const SidebarDropdown = ({ item, collapsed, userRole, hasFeature }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,30 +24,48 @@ const SidebarDropdown = ({ item, collapsed, userRole, hasFeature }) => {
   if (visibleChildren.length === 0) return null;
 
   return (
-    <li className="mb-1">
+    <li className="mb-0.5">
       <button 
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-4 py-3 mx-2 rounded-xl transition-all duration-300 text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-gray-200 font-medium ${isActive ? 'bg-indigo-50/50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300' : ''}`}
+        className={`w-[calc(100%-8px)] mx-1 flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-xs ${
+          isActive 
+            ? 'bg-indigo-50/80 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300 font-bold' 
+            : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-white font-semibold'
+        }`}
       >
-        <div className="flex items-center">
-          <span className="text-xl">{item.icon}</span>
-          {!collapsed && <span className="ml-4 font-medium">{item.name}</span>}
+        <div className="flex items-center min-w-0">
+          <span className="text-base shrink-0 flex items-center justify-center w-5">{item.icon}</span>
+          {!collapsed && (
+            <span className="ml-2.5 tracking-tight truncate whitespace-nowrap">{item.name}</span>
+          )}
         </div>
         {!collapsed && (
-          <span className={`text-xs transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+          <ChevronDown 
+            size={13} 
+            className={`shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200 ml-1 ${
+              isOpen ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : ''
+            }`} 
+          />
         )}
       </button>
+
       {!collapsed && isOpen && (
-        <ul className="mt-1 ml-6 space-y-1 border-l-2 border-gray-100 dark:border-gray-800 pl-2">
+        <ul className="mt-1 ml-4 pl-3 space-y-0.5 border-l border-slate-200/80 dark:border-slate-800">
           {visibleChildren.map(child => (
             <li key={child.name}>
               <NavLink 
                 to={child.path} 
                 className={({ isActive }) => 
-                  `block px-4 py-2 mx-2 rounded-lg transition-all duration-300 text-sm ${isActive ? 'bg-indigo-50/80 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 dark:border dark:border-indigo-500/20 font-bold hover:translate-x-1 shadow-sm' : 'text-gray-500 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200 hover:translate-x-1'}`
+                  `flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-150 ${
+                    isActive 
+                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 dark:border dark:border-indigo-500/20 font-bold shadow-xs' 
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/60 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50 font-medium'
+                  }`
                 }
               >
-                {child.name}
+                {child.icon && <span className="text-xs shrink-0">{child.icon}</span>}
+                <span className="truncate whitespace-nowrap">{child.name}</span>
               </NavLink>
             </li>
           ))}
@@ -149,7 +169,12 @@ const Sidebar = () => {
         { name: "Members", path: "/members", icon: "🧑‍🎓", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
         { name: "Member Cards", path: "/member-cards", icon: "🪪", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
         { name: "Membership Plans", path: "/membership-plans", icon: "📋", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
-        { name: "Subscriptions", path: "/subscriptions", icon: "🎫", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] }
+        { name: "Subscriptions", path: "/subscriptions", icon: "🎫", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Invoices & Billing", path: "/invoices", icon: "🧾", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Role Management", path: "/roles", icon: "🛡️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Security Center", path: "/security", icon: "🔐", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Audit & Forensics", path: "/audit/logs", icon: "🔍", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Notifications", path: "/notifications", icon: "🔔", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] }
       ]
     },
 
@@ -160,9 +185,11 @@ const Sidebar = () => {
       roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"],
       children: [
         { name: "Analytics (BI)", path: "/analytics", icon: "📊", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
-        { name: "Member Analytics", path: "/analytics/members", icon: "👥", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
         { name: "Reading Trends", path: "/analytics/reading", icon: "📖", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
         { name: "Risk & Defaulters", path: "/analytics/risk", icon: "⚠️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
+        { name: "Inventory Health", path: "/analytics/inventory", icon: "📦", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
+        { name: "Book Velocity", path: "/analytics/books", icon: "🏆", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
+        { name: "Member Analytics", path: "/analytics/members", icon: "👥", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
         { name: "Executive Reports", path: "/reports/executive", icon: "📈", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] }
       ]
     },
@@ -173,6 +200,7 @@ const Sidebar = () => {
       icon: "🌍",
       roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "STUDENT", "MEMBER"],
       children: [
+        { name: "Support Help Desk", path: "/support", icon: "🎫", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "STUDENT", "MEMBER"] },
         { name: "Announcements", path: "/announcements", icon: "📢", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
         { name: "Knowledge Admin", path: "/knowledge-admin", icon: "✍️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN"] },
         { name: "Help Center", path: "/help-center", icon: "📖", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN", "LIBRARIAN", "ASSISTANT", "STUDENT", "MEMBER"] },
@@ -191,8 +219,8 @@ const Sidebar = () => {
         { name: "Automation Rules", path: "/settings/automation", icon: "🤖", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
         { name: "Email Config", path: "/emails/dashboard", icon: "📧", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "EMAIL_INTEGRATION" },
         { name: "White Label", path: "/branding", icon: "🎨", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "WHITE_LABEL" },
-        { name: "Theme Builder", path: "/theme-builder", icon: "🖌️", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"], feature: "WHITE_LABEL" },
-        { name: "Public Portal", path: "/portal", icon: "🌍", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] }
+        { name: "Public Portal", path: "/portal", icon: "🌍", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] },
+        { name: "Product Landing Page", path: "/landing", icon: "🚀", roles: ["SUPER_ADMIN", "LIBRARY_ADMIN"] }
       ]
     }
   ];
@@ -200,6 +228,7 @@ const Sidebar = () => {
   // Role based and feature based filtering
   const { hasFeature } = useFeatures();
   const userRole = user?.role || (user?.roleId?.name);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   
   const visibleMenu = menuItems.filter(item => {
     // Check role match, but bypass feature gating
@@ -208,66 +237,125 @@ const Sidebar = () => {
   });
 
   return (
-    <div className={`hidden md:flex flex-col h-screen bg-white dark:bg-[#0f1117] border-r border-gray-200 dark:border-gray-800/60 transition-all duration-300 z-20 relative ${collapsed ? 'w-20' : 'w-64'}`}>
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-        {!collapsed && (
-          <div className="flex items-center font-bold text-xl truncate text-gray-900 dark:text-white">
-            {branding?.logo ? (
-              <img src={branding.logo} alt="Logo" className="h-8 w-8 mr-2 rounded" />
-            ) : (
-              <span className="mr-2">📚</span>
-            )}
-            {branding?.libraryName || "LibraryOS"}
-          </div>
-        )}
-        {collapsed && <span className="text-xl mx-auto">📚</span>}
-        <button onClick={() => setCollapsed(!collapsed)} className="p-1 rounded text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors">
-          {collapsed ? "»" : "«"}
-        </button>
-      </div>
+    <>
+      <aside className={`hidden md:flex flex-col h-screen bg-white/95 dark:bg-[#0b0f19]/95 backdrop-blur-xl border-r border-slate-200/80 dark:border-slate-800/80 transition-all duration-300 z-20 relative ${collapsed ? 'w-20' : 'w-[264px]'}`}>
+        
+        {/* Brand Header */}
+        <div className="flex items-center justify-between px-4 h-16 border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
+          {!collapsed ? (
+            <div className="flex items-center gap-2.5 truncate">
+              {branding?.logo ? (
+                <img src={branding.logo} alt="Logo" className="h-8 w-8 rounded-lg object-contain" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-base shadow-md shadow-indigo-600/20">
+                  📚
+                </div>
+              )}
+              <div className="flex flex-col leading-tight truncate">
+                <span className="font-extrabold text-sm tracking-tight text-slate-900 dark:text-white truncate">
+                  {branding?.libraryName || "LibraryOS"}
+                </span>
+                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                  Enterprise v2.0
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="w-8 h-8 mx-auto rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-600/20">
+              📚
+            </div>
+          )}
 
-      <div className="flex-1 overflow-y-auto py-4">
-        <ul className="space-y-1">
-          {visibleMenu.map((item) => (
-            item.children ? (
-              <SidebarDropdown 
-                key={item.name} 
-                item={item} 
-                collapsed={collapsed} 
-                userRole={userRole} 
-                hasFeature={hasFeature} 
-              />
-            ) : (
-              <li key={item.name}>
-                <NavLink 
-                  to={item.path} 
-                  className={({ isActive }) => 
-                    `flex items-center px-4 py-3 mx-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 dark:from-indigo-500/20 dark:to-blue-500/10 dark:text-indigo-400 dark:border dark:border-indigo-500/20 font-bold shadow-sm hover:translate-x-1' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200 hover:translate-x-1 font-medium'}`
-                  }
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  {!collapsed && <span className="ml-4">{item.name}</span>}
-                </NavLink>
-              </li>
-            )
-          ))}
-        </ul>
-      </div>
+          <button 
+            onClick={() => setCollapsed(!collapsed)} 
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? "»" : "«"}
+          </button>
+        </div>
 
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-transparent">
-        <div className="flex items-center">
-          <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm shrink-0">
-            {user?.name?.charAt(0) || "U"}
-          </div>
-          {!collapsed && (
-            <div className="ml-3 overflow-hidden">
-              <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user?.name || "Admin User"}</p>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate uppercase tracking-wide mt-0.5">{userRole}</p>
+        {/* Scrollable Nav Items */}
+        <div className="flex-1 overflow-y-auto py-3 px-1.5 space-y-1">
+          <ul className="space-y-0.5">
+            {visibleMenu.map((item) => (
+              item.children ? (
+                <SidebarDropdown 
+                  key={item.name} 
+                  item={item} 
+                  collapsed={collapsed} 
+                  userRole={userRole} 
+                  hasFeature={hasFeature} 
+                />
+              ) : (
+                <li key={item.name} className="mb-0.5">
+                  <NavLink 
+                    to={item.path} 
+                    className={({ isActive }) => 
+                      `w-[calc(100%-8px)] mx-1 flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 text-xs ${
+                        isActive 
+                          ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/20' 
+                          : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-white font-semibold'
+                      }`
+                    }
+                  >
+                    <span className="text-base shrink-0 flex items-center justify-center w-5">{item.icon}</span>
+                    {!collapsed && <span className="ml-2.5 tracking-tight truncate whitespace-nowrap">{item.name}</span>}
+                  </NavLink>
+                </li>
+              )
+            ))}
+          </ul>
+        </div>
+
+        {/* v2.0 Enterprise Bottom Badge */}
+        <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 shrink-0">
+          {!collapsed ? (
+            <div 
+              onClick={() => setWhatsNewOpen(true)}
+              className="p-2.5 rounded-xl border border-indigo-500/20 bg-gradient-to-r from-indigo-50/80 via-purple-50/50 to-pink-50/30 dark:from-indigo-950/40 dark:via-purple-950/20 dark:to-slate-900/30 cursor-pointer hover:border-indigo-500/40 transition group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                    LibraryOS v2.0
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.2 rounded">
+                  PRO
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                What's new in Titanium ✨
+              </p>
+            </div>
+          ) : (
+            <div 
+              onClick={() => setWhatsNewOpen(true)}
+              className="flex flex-col items-center justify-center cursor-pointer p-1"
+              title="LibraryOS v2.0 Enterprise"
+            >
+              <div className="relative">
+                <div className="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black">
+                  2.0
+                </div>
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900"></span>
+              </div>
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </aside>
+
+      {/* Release Notes Modal from Sidebar */}
+      <WhatsNewModal 
+        isOpen={whatsNewOpen} 
+        onClose={() => setWhatsNewOpen(false)} 
+      />
+    </>
   );
 };
 
