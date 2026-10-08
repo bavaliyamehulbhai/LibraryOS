@@ -57,12 +57,24 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-redux': ['@reduxjs/toolkit', 'react-redux'],
-          'vendor-ui': ['lucide-react', 'react-icons', 'react-hot-toast'],
-          'vendor-charts': ['recharts'],
-          'vendor-pdf': ['react-pdf']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@reduxjs/toolkit') || id.includes('react-redux')) {
+              return 'vendor-redux';
+            }
+            if (id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('react-pdf')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('lucide-react') || id.includes('react-icons') || id.includes('react-hot-toast')) {
+              return 'vendor-ui';
+            }
+          }
         }
       }
     }
